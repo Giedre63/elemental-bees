@@ -88,7 +88,7 @@ const SK = (name, icon, kind, mag, dur, cd, text) =>
   ({ name, icon, kind, mag, dur, cd, text });
 
 export const SKILLS = {
-  tindra: SK('Top Up',       'fx_leaf',  'topup',     6,   0,  120, 'Drops 6 nectar into every kitchen that burns Ember.'),
+  tindra: SK('Top Up',       'nectar_ember', 'topup',     6,   0,  120, 'Drops 6 nectar into every kitchen that burns Ember.'),
   sol:    SK('Golden Hour',  'fx_coins', 'premium',   8,   0,  180, 'The next 8 dishes out of any kitchen come out premium.'),
   vesta:  SK('Flashfire',    'fx_flame', 'rushcook',  1,   0,  240, 'Finishes whatever every kitchen is cooking, right now.'),
   wisp:   SK('Gust',         'fx_swirl', 'haste',     2.5, 20, 120, 'Every bee flies 2.5x faster for 20 seconds.'),
@@ -98,8 +98,8 @@ export const SKILLS = {
   marin:  SK('Downpour',     'fx_splash','bloomfill', 1,   0,  180, 'Fills every blossom to the brim.'),
   nerida: SK('Deep Current', 'fx_bolt',  'attune',    2,   60, 300, 'Attuned runs pay double for 60 seconds.'),
   clover: SK('Steady Hands', 'fx_bloom', 'stamina',   45,  0,  120, 'Gives every bee 45 stamina back.'),
-  fen:    SK('Shortcut',     'fx_swirl', 'deliver',   1,   0,  150, 'Every loaded bee delivers where she stands.'),
-  thorne: SK('Ledger',       'fx_coins', 'coins',     8,   0,  240, 'Shakes 8 coins out of the tree.'),
+  fen:    SK('Shortcut',     'fx_clock', 'deliver',   1,   0,  150, 'Every loaded bee delivers where she stands.'),
+  thorne: SK('Ledger',       'icon_coin', 'coins',     8,   0,  240, 'Shakes 8 coins out of the tree.'),
 };
 export const skillOf = rid => SKILLS[rid];
 export const skillCd = (rid, level) =>

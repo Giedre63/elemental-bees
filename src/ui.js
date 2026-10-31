@@ -1303,10 +1303,16 @@ export function syncDock() {
   const key = list.map(b => b.id).join(',');
   if (dock.dataset.key !== key) {
     dock.dataset.key = key;
-    dock.innerHTML = list.map(b =>
-      `<button class="slot-skill" data-bee="${b.id}" title="${SKILLS[b.rid].name}">
+    // each disc is one bee's skill, with her face in the corner so you know whose
+    dock.innerHTML = `<span class="dock-label">Bee skills \u00b7 tap to use</span>` + list.map(b =>
+      `<button class="slot-skill" data-bee="${b.id}" aria-label="${SKILLS[b.rid].name}">
         <i class="ic" style="${art(SKILLS[b.rid].icon)}"></i>
+        <i class="sk-bee" style="${art('bee_' + b.el)}"></i>
         <span class="cd"></span></button>`).join('');
+    dock.querySelectorAll('[data-bee]').forEach(el => {
+      el.onmouseenter = () => skillTip(el);
+      el.onmouseleave = () => document.getElementById('skilltip')?.remove();
+    });
     dock.querySelectorAll('[data-bee]').forEach(el => el.onclick = () => {
       const bee = S.bees.find(x => x.id === +el.dataset.bee);
       if (!bee) return;
@@ -1316,13 +1322,29 @@ export function syncDock() {
       save(); syncHUD(); syncDock();
     });
   }
-  for (const el of dock.children) {
+  for (const el of dock.querySelectorAll('[data-bee]')) {
     const bee = S.bees.find(b => b.id === +el.dataset.bee);
     if (!bee) continue;
     const left = skillLeft(bee);
     el.classList.toggle('cooling', left > 0);
     el.querySelector('.cd').textContent = left > 0 ? Math.ceil(left) : '';
   }
+}
+
+// Hover a skill disc: whose it is, what it does, and when it's ready.
+function skillTip(el) {
+  const bee = S.bees.find(b => b.id === +el.dataset.bee);
+  if (!bee) return;
+  const sk = SKILLS[bee.rid], left = skillLeft(bee);
+  document.getElementById('skilltip')?.remove();
+  const t = document.createElement('div');
+  t.id = 'skilltip'; t.className = 'hudtip';
+  t.innerHTML = `<h4>${sk.name}</h4><p>${beeName(bee)}'s skill. ${sk.text}</p>
+    <p class="rate">${left > 0 ? 'Ready in ' + clock(left) : 'Ready now: tap it'} \u00b7 cooldown ${clock(skillCd(bee.rid, bee.level || 1))}</p>`;
+  const app = $('#app').getBoundingClientRect(), r = el.getBoundingClientRect();
+  t.style.left = Math.max(8, r.left - app.left - 20) + 'px';
+  t.style.bottom = (app.bottom - r.top + 8) + 'px';
+  $('#app').appendChild(t);
 }
 
 export function initUI() {
