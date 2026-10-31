@@ -526,3 +526,17 @@ button.rename:hover{color:var(--gold2,#a9731c)}
 .chap em{font-style:normal;font-size:11px;font-weight:bold}
 .chap.on{background:#e8a317;color:var(--ink)}
 .chap.on span{background:#fff3cf;color:var(--ink)}
+
+/* close and move: brown round buttons sitting on the frame's top edge, icon only */
+#sheet.framed{overflow:visible}
+#sheet.framed .sheet-body{overflow-y:auto}
+#sheet .frame-btn{position:absolute;z-index:3;width:40px;height:40px;border-radius:50%;padding:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 35%,#6a4c38,#3a2820 75%);border:3px solid #24170f;
+  box-shadow:inset 0 0 0 2px #c9963e,0 3px 0 #0005}
+#sheet .frame-btn svg{width:20px;height:20px;fill:none;stroke:#f6e7c4;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+#sheet .frame-btn:active{transform:translateY(2px);box-shadow:inset 0 0 0 2px #c9963e,0 1px 0 #0005}
+#sheet .frame-btn.hidden{display:none}
+#sheet-close{top:calc(-1 * var(--panel-border) + 4px);right:calc(-1 * var(--panel-border) + 52px);transform:none}
+#sheet-move{top:calc(-1 * var(--panel-border) + 4px);right:calc(-1 * var(--panel-border) + 98px);transform:none}
+#sheet-close:active,#sheet-move:active{transform:translateY(2px)}
