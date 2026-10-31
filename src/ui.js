@@ -8,11 +8,11 @@ import {
   roomFor, buyLot, nextLandCost, lotBuyable, wipe,
   techCount, researched, techState, techGate, unlockedBy, isUnlocked, research,
   kpIn, kpFull, pourKp, buyKp, kpNextIn,
-  ownedCount, buildLimit, buildCost, addFresh,
+  ownedCount, buildLimit, buildCost, addFresh, decorArea, decorTargets, decorBonus, posOf,
 } from './state.js';
 import {
   TECH, techDef, techCost, STARTERS, BUILDING_IDS, STATIONS, TECH_TEXT, FEATURE_TEXT, FOOT,
-  BEE_TEXT, CHAPTERS, WAGGLE, techKp, GLOBAL_LAB, labCost, stationSpdCost, stationPremCost,
+  BEE_TEXT, CHAPTERS, WAGGLE, techKp, DECOR_RANGE, RIVALS, GLOBAL_LAB, labCost, stationSpdCost, stationPremCost,
   ROYAL_LAB, royalCost, OUTFITS, OUTFIT_SLOTS, outfitUpCost, DECOR, SHOP, ELEMENTS, BOOST_SECONDS, ACADEMY, ELEMENT_IDS,
   BUILDINGS, STORIES, PRESS, SHRINE, ORDERS, UPGRADES, upgradeKind, stationDef,
   BEE_ROSTER, beeDef, RARITY, ROSTER_MAX, BEE_MAX_LEVEL, promoteCost, SUMMON,
@@ -23,7 +23,7 @@ import { fmt, pct, clock } from './num.js';
 import { sellStation, sellType, typeStock, collectBag, rushBlossoms, fillOrder, summon, useSkill } from './sim.js';
 import { E, clearHold } from './edit.js';
 import { wraps, wornUrl } from './wear.js';
-import { viewCentre } from './render.js';
+import { viewCentre, lookBelowPanel } from './render.js';
 import { spriteUrl } from './assets.js';
 
 const $ = s => document.querySelector(s);
@@ -199,9 +199,19 @@ export function syncHUD() {
   const wx = $('#chip-wax');
   wx.classList.toggle('hidden', !S.lounges.length);
   wx.querySelector('span').textContent = fmt(S.wax);
+  // hive rank badge, and a note when you pass another hive
+  const st = standings(), me = st.find(r => r.me);
+  $('#rank-pos').textContent = '#' + me.pos;
+  $('#rank-pts').textContent = 'Hive Rank ' + fmt(me.score);
+  if (S.lastPos && me.pos < S.lastPos) {
+    const passed = st[me.pos];
+    toast(`You passed ${passed ? passed.name : 'a hive'}. Now #${me.pos} in the county.`);
+  }
+  S.lastPos = me.pos;
   // waggles: count, and a bar filling towards the next one
   const kp = $('#chip-kp');
-  kp.querySelector('span').textContent = `${Math.floor(S.kp)}/${WAGGLE.cap}`;
+  // bought ones can take you past the cap; then just show how many you hold
+  kp.querySelector('span').textContent = S.kp > WAGGLE.cap ? `${Math.floor(S.kp)}` : `${Math.floor(S.kp)}/${WAGGLE.cap}`;
   kp.querySelector('.kpbar i').style.width = (S.kp >= WAGGLE.cap ? 100 : Math.round((S.kp % 1) * 100)) + '%';
   kp.classList.toggle('full', S.kp >= WAGGLE.cap);
   const jel = $('#chip-jelly');
@@ -1228,15 +1238,28 @@ function renderThing() {
   if (p.k === 'lounge') {
     title.textContent = 'Bee Hotel';
     const guests = S.bees.filter(b => b.restSlot === +key.slice(3) && b.mode === 'rest').length;
-    body.innerHTML = tale('lounge') + `<div class="hint">Tired bees fly into a tube and sleep it off;
-      the more tired, the longer they sleep. ${guests} asleep here now, ${HOTEL.tubes.length} tubes.
-      Every hotel also makes beeswax, ${(BUILD.waxPerSec * buildingLevel('lounge')).toFixed(2)}/s each.
-      Levels apply to all your hotels.</div>` + upgradeRow('lounge');
+    const near = decorBonus(key, 'rest');
+    body.innerHTML = tale('lounge') + `<div class="facts">
+        <div><span>Asleep here</span><b>${guests} of ${HOTEL.tubes.length} tubes</b></div>
+        <div><span>Beeswax</span><b>${(BUILD.waxPerSec * buildingLevel('lounge')).toFixed(2)}/s from each hotel</b></div>
+        <div><span>Sleep</span><b>The more tired a bee, the longer she sleeps${near ? ` \u00b7 ${pct(near)} faster here, from decorations nearby` : ''}</b></div>
+      </div>
+      <div class="hint">Levels apply to every bee hotel you have.</div>` + upgradeRow('lounge');
     wireUpgrade('lounge', renderThing);
   } else if (p.k === 'decor') {
-    const id = S.decor[+key.slice(3)];
-    title.textContent = DECOR[id]?.name || 'Decoration';
-    body.innerHTML = tale(id) + `<div class="hint">${DECOR[id]?.effect || ''}</div>`;
+    const id = S.decor[+key.slice(3)], d = DECOR[id];
+    title.textContent = d?.name || 'Decoration';
+    // its reach shows on the map while this is open
+    E.peek = E.panelPeek = key;
+    const n = decorTargets(id, decorArea(key)).length;
+    const noun = { kitchen: 'kitchen', blossom: 'blossom', hotel: 'bee hotel' }[d.affects];
+    body.innerHTML = tale(id) + `<div class="card"><div class="art" style="${art(id)}"></div>
+      <div class="meta"><h3>${d.effect}</h3>
+        <small>${d.affects === 'bee'
+          ? `Any bee flying within ${DECOR_RANGE} squares of it.`
+          : `Reaches ${DECOR_RANGE} squares all round. Helping <b>${n} ${noun}${n === 1 ? '' : 's'}</b> right now.`}</small></div></div>
+      <div class="hint">The blue square on the map is its reach${d.affects === 'bee' ? '' : `; what it helps is outlined in gold`}.
+        ${d.affects !== 'bee' && n < 3 ? `Move it among more ${noun}s to help more of them.` : ''}</div>`;
   } else if (p.k === 'blossom') {
     const b = S.blossoms.find(x => 'bl:' + x.slot === key);
     title.textContent = ELEMENTS[b.el].name + ' Blossom';
@@ -1277,6 +1300,8 @@ export function openThing(key) {
   if (p.k === 'station') return openKitchen(key);
   if (p.k === 'academy') return openAcademy();
   if (p.k === 'building' && BUILDINGS[key].panel) return openBuilding(key);
+  // a decoration's reach is drawn on the map, so keep it in view below the panel
+  if (p.k === 'decor') { const [x, y] = posOf(key); lookBelowPanel(x, y); }
   currentThing = key;
   openPanel('thing');
 }
@@ -1369,7 +1394,42 @@ function syncEdit() {
   no.classList.toggle('hidden', !holding);
 }
 
-const RENDER = { park: renderPark, lab: renderLab, royal: renderRoyal, bees: renderBees,
+// ---------------------------------------------------------------- ranking
+// Your hive against the county's. Theirs grow a little every real hour, up to
+// double, so the table keeps moving even when you don't.
+function standings() {
+  const hours = Math.max(0, (Date.now() - (S.rankStart || Date.now())) / 3600e3);
+  const grow = Math.min(2, 1 + hours * 0.01);
+  const rows = RIVALS.map(r => ({ name: r.name, score: Math.round(r.base * grow) }));
+  rows.push({ name: 'Your hive', score: hivePower(), me: true });
+  rows.sort((a, b) => b.score - a.score || (a.me ? -1 : 1));
+  rows.forEach((r, i) => { r.pos = i + 1; });
+  return rows;
+}
+
+function renderRanking() {
+  title.textContent = 'Hive Ranking';
+  const rows = standings(), me = rows.find(r => r.me);
+  const show = new Set([0, 1, 2]);
+  for (let i = me.pos - 6; i <= me.pos + 4; i++) if (i >= 0 && i < rows.length) show.add(i);
+  let last = -1;
+  const list = [...show].sort((a, b) => a - b).map(i => {
+    const r = rows[i];
+    const gap = last >= 0 && i > last + 1 ? '<div class="rk-gap">\u22ee</div>' : '';
+    last = i;
+    return gap + `<div class="rk-row ${r.me ? 'me' : ''} ${r.pos <= 3 ? 'top' : ''}">
+      <b class="rk-pos">${r.pos <= 3 ? ['\ud83e\udd47', '\ud83e\udd48', '\ud83e\udd49'][r.pos - 1] : '#' + r.pos}</b>
+      <span class="rk-name">${r.name}</span><span class="rk-score">${fmt(r.score)}</span></div>`;
+  }).join('');
+  const above = rows[me.pos - 2];
+  body.innerHTML = `<div class="rk-head"><i class="ic" style="${art('fx_crest')}"></i>
+      <div><b>#${me.pos} of ${rows.length}</b><small>Hive Rank ${fmt(me.score)}${above ? ` \u00b7 ${fmt(above.score - me.score + 1)} more to pass ${above.name}` : ' \u00b7 top of the county'}</small></div></div>
+    <div class="rk-list">${list}</div>
+    <div class="hint">Hive Rank counts your bees (stars \u00d7 level), building levels, bee hotels and research.
+      The other hives keep growing, slowly, whether you're watching or not.</div>`;
+}
+
+const RENDER = { park: renderPark, ranking: renderRanking, lab: renderLab, royal: renderRoyal, bees: renderBees,
   shop: renderShop, academy: renderAcademy, orders: renderOrders, press: renderPress,
   shrine: renderShrine, hatchery: renderHatchery, kitchen: renderKitchen,
   settings: renderSettings, build: renderBuild, land: renderLand, thing: renderThing };
@@ -1388,6 +1448,7 @@ export function openTab(name) {
 
 export function closeSheet() {
   stopPress();
+  E.panelPeek = null; E.peek = E.hover || null;
   document.getElementById('fittip')?.remove();
   tipPinned = false; hideTechTip();
   tab = null;
@@ -1464,6 +1525,7 @@ export function initUI() {
   $('#bag').onclick = () => { const n = collectBag(); if (n) toast('Collected ' + fmt(n)); save(); syncHUD(); };
   applyTheme(S.theme);
   $('#btn-settings').onclick = () => openTab('settings');
+  $('#rank-badge').onclick = () => openTab('ranking');
   $('#btn-build').onclick = () => { endMove(); openTab('build'); };
   $('#btn-move').onclick = startMove;
   $('#sheet-move').onclick = () => { const k = sheetKey(); if (k) pickUp(k, false); };

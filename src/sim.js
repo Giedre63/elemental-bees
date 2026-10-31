@@ -2,6 +2,7 @@ import {
   S, stats, dishValue, give, inClass, attunedTo, incomePerSec,
   beeMul, crewOk, buildingStep, grantBee, setBuff, waxPerSec,
   buildBusy, finishBuild, startCooldown, skillReady, beeStars, posOf, copiesOf, regenKp,
+  decorBonus, decorAt,
 } from './state.js';
 import {
   BLOSSOM_SLOTS, LOUNGE_SLOTS, STATIONS, stationDef, ELEMENTS, ACADEMY, ACADEMY_POS,
@@ -25,7 +26,8 @@ export const stationAttune = d =>
 export const beeCarry = b => Math.max(1, Math.round(
   4 * stats.carry * beeMul(b).carry * (1 + (b.rank || 0) * ACADEMY.carryPerRank)));
 export const beeSpeed = b =>
-  BEE_SPEED * stats.speed * beeMul(b).speed * (1 + (b.rank || 0) * ACADEMY.speedPerRank);
+  BEE_SPEED * stats.speed * beeMul(b).speed * (1 + (b.rank || 0) * ACADEMY.speedPerRank) *
+  (1 + decorAt(b.x, b.y, 'speed'));
 export const loungePos  = i => posOf('lg:' + i);
 
 // Where tube k of hotel i opens, in world space.
@@ -197,7 +199,8 @@ function beeTick(bee, dt) {
     }
     case 'rest': {
       bee.t += dt;
-      bee.stam = Math.min(100, bee.stam + HOTEL.regen * dt * stats.stamina);
+      bee.stam = Math.min(100, bee.stam + HOTEL.regen * dt * stats.stamina *
+        (1 + decorBonus('lg:' + bee.restSlot, 'rest')));
       // one heart bubble per hotel, over the roof, however many are asleep in it
       if (bee.t > 3 && Math.random() < 0.12 * dt && pops.length < 10) {
         const p = loungePos(bee.restSlot);
@@ -257,11 +260,12 @@ function stationTick(id, dt) {
 
 // --- blossoms -------------------------------------------------------------
 function blossomTick(b, dt) {
-  b.nectar = Math.min(b.max, b.nectar + 1.6 * stats.bloomFor(b.el) * dt);
+  const key = 'bl:' + b.slot;
+  b.nectar = Math.min(b.max, b.nectar + 1.6 * stats.bloomFor(b.el) * (1 + decorBonus(key, 'bloom')) * dt);
   b.heartAt -= dt;
   if (b.heartAt <= 0) {
     b.heartAt = 12 + Math.random() * 14;
-    if (Math.random() < stats.heartChance && pops.length < 10) {
+    if (Math.random() < stats.heartChance * (1 + decorBonus(key, 'heart')) && pops.length < 10) {
       const [x, y] = blossomPos(b);
       popAt(x, y - 40, 'heart', 'bl' + b.slot);
     }

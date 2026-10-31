@@ -242,25 +242,25 @@ export const ORDERS = { slots: 3, every: 240, life: 1800 };
 
 // Flavour. Tapping anything you built tells you a bit about who runs it.
 export const STORIES = {
-  ember_grill:   "Bram fans the coals with his own wing. Says it's quicker than a bellows. It isn't.",
-  loam_mill:     "Nessa walks the wheel all day. She counted her steps once and won't say the number.",
-  tide_cauldron: "Oskar can't get down off the rim without help, so he just keeps stirring.",
-  gale_whisk:    'The souffl\u00e9 rises as long as Pip keeps pedalling. Pip worked this out and now negotiates.',
-  ash_oven:      "Dag rolls dough with a pillbug called Kev. Kev volunteered. Nobody's sure why.",
-  storm_kettle:  'The cloud came with the kettle. Mab strapped a rod to her shell and decided that was that.',
-  academy:       "Professor Quill has taught the second-element course for forty years. He's halfway through lesson two.",
-  lounge:        "Nine tubes, no bookings. The top left one gets the afternoon sun, so there's always a queue for it.",
-  coin_tree:     'Grew from a coin somebody dropped and forgot. The caterpillar moved in later and pays no rent.',
-  order_board:   'Pim stamps everything twice. Once for the record, once because he likes the sound.',
-  nectar_press:  'Ivo will tell you that you let go early. He says that to everyone.',
-  hatchery:      'The queen does not come out and she does not explain. Eggs appear. That is the arrangement.',
-  shrine:        'Older than the park. Light a symbol, it runs hot for a while, then it goes quiet and wants relighting.',
-  prop_sign:     'Points at the kitchens. Nobody was lost. Sales went up anyway.',
-  prop_fountain: 'Runs on nothing anyone can find. Blossoms near it come back faster.',
-  prop_lantern:  'Left lit by accident the first night. The flowers put out more hearts, so it stayed.',
-  prop_picnic:   "Somebody's lunch, abandoned years ago and still perfectly good. Bees rest better near it.",
-  prop_books:    'Recipes, mostly. A few are just complaints about other recipes.',
-  prop_stump:    'A good sitting stump. That is the whole of it.',
+  ember_grill:   "Bram has kept this fire since before the park had a name. He fans it with one wing and talks to it with the other, and the fire, for its part, mostly listens.",
+  loam_mill:     "Nessa walks the wheel and the wheel, she tells the stones, walks the world. She counted her steps once. She has never said the number aloud.",
+  tide_cauldron: "Oskar climbed onto the rim one spring and found he couldn't get down. That was nine summers ago. The broth has been excellent ever since.",
+  gale_whisk:    "Pip pedals and the soufflé rises, and if Pip ever stops it will come down like a cathedral in a gale. Pip knows this. Pip has started asking for more.",
+  ash_oven:      "Dag bakes with a pillbug called Kev, who rolls the dough and asks for nothing. There are old stories about bakers and their familiars. Dag doesn't read them.",
+  storm_kettle:  "The cloud followed the kettle home one wet Tuesday and wouldn't leave. Mab tied a rod to her shell and made tea of it, which is roughly how empires begin.",
+  academy:       "Professor Quill has taught the second element for forty years and is nearly halfway through lesson two. His students graduate anyway. Snails take the long view.",
+  lounge:        "Nine tubes and no bookings. The top-left one catches the afternoon sun, and there have been feuds over it the hotel still won't discuss.",
+  coin_tree:     "It grew from a coin someone dropped and forgot, which is how most fortunes start. The caterpillar came later. It pays no rent and has never been asked to.",
+  order_board:   "Pim stamps every order twice: once for the ledger, once for the sound. Somewhere a great book records each one. Pim suspects it's his.",
+  nectar_press:  "Ivo will tell you that you let go too early. He has said it to queens. He was right then, too.",
+  hatchery:      "The queen does not come out and she does not explain. Eggs appear in the cells. The arrangement is older than the park and has never needed signing.",
+  shrine:        "It was here before the first bee and it'll be here after the last. Light one of the four signs and it burns for a while, then sleeps, and waits to be asked again.",
+  prop_sign:     "It points at the kitchens. Nobody was lost. Profits rose anyway, which tells you most of what you need to know about signs.",
+  prop_fountain: "The water comes from somewhere no one has found, though several bees have gone looking. One came back wet and wiser. Blossoms nearby grow back quicker.",
+  prop_lantern:  "Someone left it lit the first night and the flowers took to it. They've shown their hearts more freely ever since, and nobody has had the heart to blow it out.",
+  prop_picnic:   "Somebody's lunch, left on the grass a very long time ago and still perfectly good. Bees sleep better beside it. Nobody has dared ask whose it was.",
+  prop_books:    "Recipes, mostly. Some are complaints about other recipes, and one near the back is in a language the kitchens pretend not to recognise.",
+  prop_stump:    "A good sitting stump. Bees that pass it fly a little lighter afterwards, and if the stump knows why, it hasn't said.",
 };
 
 // --- the park track -------------------------------------------------------
@@ -372,14 +372,19 @@ export const OUTFIT_SLOTS = ['hat', 'clothes', 'shoes'];
 export const outfitUpCost = (o, lvl) => Math.ceil(o.stars * 4 * Math.pow(1.35, lvl));
 
 // --- decor ----------------------------------------------------------------
+// Decorations help what's near them, Elvenar-style: anything of the kind they
+// affect whose footprint reaches into the square DECOR_RANGE cells round them.
+// Bees count when they fly through it. stat: the key the bonus feeds.
+export const DECOR_RANGE = 2;
 export const DECOR = {
-  prop_sign:     { name: 'Honey Signpost', effect: 'All Products Profit +25%',    profit: 0.25 },
-  prop_fountain: { name: 'Little Fountain',effect: 'Blossom Regrowth +30%',       bloom: 0.30 },
-  prop_lantern:  { name: 'Park Lantern',   effect: 'Flower Heart Chance +20%',    heart: 0.20 },
-  prop_picnic:   { name: 'Picnic Basket',  effect: 'Bee Stamina +40%',            stam: 0.40 },
-  prop_books:    { name: 'Recipe Books',   effect: 'All Production SPD +15%',     spd: 0.15 },
-  prop_stump:    { name: 'Stump Stool',    effect: 'Bee Flight Speed +10%',       speed: 0.10 },
+  prop_sign:     { name: 'Honey Signpost', affects: 'kitchen', stat: 'profit', amt: 0.25, effect: 'Kitchens nearby earn 25% more' },
+  prop_fountain: { name: 'Little Fountain',affects: 'blossom', stat: 'bloom',  amt: 0.30, effect: 'Blossoms nearby regrow 30% faster' },
+  prop_lantern:  { name: 'Park Lantern',   affects: 'blossom', stat: 'heart',  amt: 0.20, effect: 'Blossoms nearby drop hearts 20% more often' },
+  prop_picnic:   { name: 'Picnic Basket',  affects: 'hotel',   stat: 'rest',   amt: 0.40, effect: 'Bees in hotels nearby sleep it off 40% faster' },
+  prop_books:    { name: 'Recipe Books',   affects: 'kitchen', stat: 'spd',    amt: 0.15, effect: 'Kitchens nearby cook 15% faster' },
+  prop_stump:    { name: 'Stump Stool',    affects: 'bee',     stat: 'speed',  amt: 0.10, effect: 'Bees fly 10% faster while they pass by' },
 };
+export const AFFECTS_KIND = { kitchen: 'station', blossom: 'blossom', hotel: 'lounge' };
 
 // --- shop -----------------------------------------------------------------
 export const SHOP = [
@@ -522,42 +527,42 @@ export const techDef = id => TECH.find(t => t.id === id);
 // every kitchen is fed, so a bigger cap punished small parks hardest.
 export const techCost = (t, incomePerSec) => (t.n === 0 ? 0 : parkCost(t.n, incomePerSec));
 
-// One line for each node's tooltip, in the park's own voice. Bees get theirs
+// One line for each node's tooltip. Flavour, so it's allowed to be strange. Bees get theirs
 // from BEE_TEXT, by element.
 export const TECH_TEXT = {
-  grill:    "Where it starts. A stag beetle, a brazier, and skewers at a coin each.",
-  emberbl:  "Ember nectar grows on these. Plant them near the grill so the trip is short.",
-  stump:    "A good sitting stump. Bees fly a little faster for having somewhere to perch.",
-  hotel:    "Bees get tired. Give them tubes to crawl into, and they make beeswax while they sleep.",
-  loam:     "Nessa the worm walks the wheel all day. Seed cake is worth ninety-odd skewers.",
-  lab:      "Hearts start to matter. Spend them on carrying, flight speed, regrowth and stamina.",
-  loambl:   "Loam nectar. Heavy, slow to carry, and the mill wants four per cake.",
-  outfits:  "Clothes with stats. A sweater helps her carry more.",
-  sign:     "Points at the kitchens. Nobody was lost, but profits went up a quarter anyway.",
-  cointree: "Drops coins on the grass every few seconds. Tap them before the hauler gets there.",
-  tide:     "A snail with a cauldron. Nectar broth is the first dish worth thousands.",
-  tidebl:   "Tide nectar, for the cauldron and later the storm kettle.",
-  parcel:   "Standing orders for dishes. Pim pays in gems and pollen, which coins can't buy.",
-  fountain: "Blossoms near water come back faster. Nobody knows where the water comes from.",
-  royal:    "Gems go here. Bigger, slower upgrades: profit, premium chance, longer offline time.",
-  gale:     "Wind-powered whisking. Cloud souffle, and a lot of it.",
-  academy:  "The snail teaches a bee a second element, so one bee can crew two kinds of kitchen.",
-  galebl:   "Gale nectar. Light, and it blows about a bit.",
-  press:    "Stop the gauge in the gold band and every dish is worth more for a while.",
-  books:    "Recipes, mostly. Every kitchen cooks a bit faster with them about.",
-  hauler:   "Sells what the kitchens can't hold, at half price, into a bag you collect.",
-  ash:      "Needs two Ember bees and two Loam bees at once. The academy helps.",
-  shrine:   "Light one element and its bees pay double while it burns.",
-  lantern:  "Left lit by accident the first night. More hearts, so it stayed.",
-  hatchery: "The queen hatches new bees for gems. There's a featured bee every three days.",
-  storm:    "Two Gale bees, two Tide bees, and tea worth billions a cup.",
-  picnic:   "Somebody's lunch, years old and still fine. Bees rest better near it.",
+  grill:    "Every kingdom starts with a fire. This one starts with a beetle, a brazier, and skewers at a coin apiece.",
+  emberbl:  "Ember blossoms are warm to the touch. Plant them near the grill and the bees will thank you, quietly.",
+  stump:    "Somewhere to sit. Bees that pass it fly lighter, and nobody can say why.",
+  hotel:    "Bees tire, like everyone. Give them tubes to crawl into and they'll make beeswax in their sleep.",
+  loam:     "Nessa the worm walks the wheel. Seed cake is worth ninety skewers, and she's well aware of it.",
+  lab:      "Hearts begin to matter. Spend them on stronger backs, quicker wings and greener lawns.",
+  loambl:   "Loam nectar is heavy and dark and smells of rain. The mill wants four for every cake.",
+  outfits:  "Clothes with a purpose. A good sweater lets a bee carry more, which is the old secret of sweaters.",
+  sign:     "It points at the kitchens. Trade near it goes up a quarter, and signs have been worshipped for less.",
+  cointree: "A tree that drops coins on the grass. Pick them up before the hauler does, or don't, and see who's richer by spring.",
+  tide:     "A snail who never leaves the rim of his cauldron. His broth is the first dish worth thousands.",
+  tidebl:   "Tide nectar, cool and blue, for the cauldron now and the storm kettle later.",
+  parcel:   "Pim takes standing orders for dishes and pays in gems and pollen, which coins have never been able to buy.",
+  fountain: "Water from nowhere anyone has found. Blossoms near it grow back faster and ask no questions.",
+  royal:    "Gems are spent here, on the slow grand changes: richer dishes, rarer ones, longer nights away.",
+  gale:     "A grasshopper on a bicycle, a whisk, and a soufflé the height of a small tower.",
+  academy:  "The old snail teaches a bee a second element, so one bee can serve two kitchens.",
+  galebl:   "Gale nectar is light enough to blow away, and sometimes does.",
+  press:    "Stop the gauge in the gold and every dish sells dearer for a while. Ivo will still say you let go too early.",
+  books:    "Recipes, mostly. Kitchens near them cook faster, possibly out of embarrassment.",
+  hauler:   "Someone to sell what the kitchens can't hold, at half price, into a bag you collect when you remember.",
+  ash:      "Two Ember bees and two Loam bees working side by side, for once. The academy helps with that.",
+  shrine:   "An old stone that was here before the bees. Light one sign and its bees earn double while it burns.",
+  lantern:  "Left lit the first night by accident. The flowers nearby have been more generous with their hearts since.",
+  hatchery: "The queen hatches new bees for gems, and every three days she favours one in particular.",
+  storm:    "Two Gale bees, two Tide bees and a captured cloud. The tea sells for billions and tastes faintly of thunder.",
+  picnic:   "Somebody's lunch, years old and still fine. Bees sleep better beside it.",
 };
 export const BEE_TEXT = {
-  ember: 'Ember bees crew the grill, and two of them the ash oven.',
-  loam:  'Loam bees run the mill, and two of them help at the ash oven.',
-  tide:  'Tide bees crew the cauldron, and two of them the storm kettle.',
-  gale:  'Gale bees run the whisk, and two of them the storm kettle.',
+  ember: "Ember bees run warm and fly straight. The grill needs one; the ash oven, later, two.",
+  loam:  "Loam bees are slow and steady and strong. The mill needs one, and the ash oven two.",
+  tide:  "Tide bees hum like rain on a roof. The cauldron needs one; the storm kettle, two.",
+  gale:  "Gale bees never quite land. The whisk needs one, and the storm kettle two.",
 };
 // Before every node did one thing, nodes did several. A save researched under
 // the old ids gets every node its old one covered.
@@ -596,3 +601,18 @@ export const ACADEMY = {
 
 export const BOOST_SECONDS = 120;
 export const BASE_OFFLINE_SECONDS = 3600;
+
+// --- neighbouring hives -----------------------------------------------------
+// The ranking: other hives in the county, each with a Hive Rank that creeps up
+// over real days, so climbing the table never quite stops. Bases are spread
+// from a new hive's to a finished one's.
+export const RIVALS = [
+  'The Bramble Court', 'Old Mossback', 'Hollyhock Combs', "Queen Tamsin's Rest", 'Wort & Willow',
+  'The Ninefold Hive', 'Lantern Hill', "Sorrel's Reach", 'Thistledown', 'The Quiet Apiary',
+  "Mabel's Folly", 'Ironbark Combs', 'The Last Orchard', 'Clover Throne', 'Hazel Hollow',
+  'The Sundial Hive', 'Tansy Gate', 'Brackenmoor', 'The Waxen Tower', 'Foxglove Rest',
+  'Kettle Lane', "Saint Agnes' Bees", 'The Drowsy Combe', 'Elderflower Keep', 'Gorse End',
+  'The Amber Cloister', 'Little Hamwick', "Rook's Meadow", "The Pale Queen's Hive", 'Marigold Market',
+  'Duskwing', 'The Crooked Skep', 'Honeysuckle Row', 'Owlbury', 'The Second Garden',
+  'Larkspur', 'Nettlebed', 'The Gilded Comb', 'Wychwood', 'Barrow Down',
+].map((name, i, all) => ({ name, base: Math.round(14 * Math.pow(3600 / 14, (all.length - 1 - i) / (all.length - 1))) }));

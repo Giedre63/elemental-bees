@@ -5,6 +5,7 @@ import {
   UPGRADES, upgradeKind, BUILD, HIVE_GATE, BUILDING_IDS, skillCd,
   GRID, FOOT, LOT_COLS, WORLD, ACADEMY_POS, typeOf, landCost, COPY,
   TECH, techDef, techCost, STARTERS, GRID_V2, GRID_V3, START_LOTS, TECH_V4, WAGGLE, techKp,
+  DECOR_RANGE, AFFECTS_KIND,
 } from './data.js';
 
 const KEY = 'elemental-bees-save-v1';
@@ -17,6 +18,9 @@ export function freshState() {
     tech: {},                // research node id -> true
     kp: WAGGLE.start,        // waggles in hand
     techKp: {},              // research node id -> waggles poured in so far
+    rankStart: Date.now(),   // when the neighbouring hives started growing
+    lastPos: 0,              // last ranking position seen, for "you passed"
+
     features: {},            // lab / royal / outfits / autosell
     stations: {},            // id -> { stock, premStock, buf:{el:n}, cook, spdLvl, premLvl }
     blossoms: [],            // { slot, el, nectar, max, heartAt }
@@ -194,8 +198,51 @@ export function wipe() {
 // --- derived stats --------------------------------------------------------
 const lvl = (bag, id) => bag[id] || 0;
 
-function decorSum(key) {
-  return S.decor.reduce((n, id) => n + (DECOR[id]?.[key] || 0), 0);
+// --- decorations help what's near them -------------------------------------
+// The cells a decoration reaches: its footprint grown by DECOR_RANGE each way.
+// (c, r) override where it is, for a ghost being placed.
+export function decorArea(key, c, r) {
+  const p = S.place[key];
+  if (!p && c == null) return null;
+  const cc = c ?? p.c, rr = r ?? p.r;
+  return { c0: cc - DECOR_RANGE, r0: rr - DECOR_RANGE, c1: cc + DECOR_RANGE, r1: rr + DECOR_RANGE };
+}
+const overlaps = (a, p) => {
+  const [w, h] = FOOT[p.k];
+  return p.c <= a.c1 && p.c + w - 1 >= a.c0 && p.r <= a.r1 && p.r + h - 1 >= a.r0;
+};
+const decorOf = key => DECOR[S.decor[+key.slice(3)]];
+
+// Everything one decoration is helping, at its spot or a ghost spot.
+export function decorTargets(id, area) {
+  const d = DECOR[id];
+  if (!d || !AFFECTS_KIND[d.affects]) return [];
+  return Object.entries(S.place).filter(([, p]) => p.k === AFFECTS_KIND[d.affects] && overlaps(area, p)).map(([k]) => k);
+}
+
+// The bonus a placed thing gets from decorations round it, for one stat.
+export function decorBonus(key, stat) {
+  const p = S.place[key];
+  if (!p) return 0;
+  let n = 0;
+  for (const [dk, dp] of Object.entries(S.place)) {
+    if (dp.k !== 'decor') continue;
+    const d = decorOf(dk);
+    if (d && d.stat === stat && overlaps(decorArea(dk), p)) n += d.amt;
+  }
+  return n;
+}
+
+// For bees, which move: the bonus at a point on the map.
+export function decorAt(x, y, stat) {
+  const [c, r] = pxCell(x, y);
+  let n = 0;
+  for (const [dk, dp] of Object.entries(S.place)) {
+    if (dp.k !== 'decor') continue;
+    const d = decorOf(dk), a = decorArea(dk);
+    if (d && d.stat === stat && c >= a.c0 && c <= a.c1 && r >= a.r0 && r <= a.r1) n += d.amt;
+  }
+  return n;
 }
 
 function outfitSum(stat) {
@@ -254,17 +301,17 @@ export const stats = {
     return this.bloom * (el && el === this.shrineEl ? SHRINE.bloomMul : 1);
   },
   get carry()  { return (1 + lvl(S.lab, 'carry')  * 0.20 + outfitSum('carry') + passiveSum('carry')) * buff('carry'); },
-  get speed()  { return (1 + lvl(S.lab, 'speed')  * 0.06 + decorSum('speed') + outfitSum('speed') + passiveSum('speed')) * buff('haste'); },
-  get bloom()  { return 1 + lvl(S.lab, 'bloom')  * 0.08 + decorSum('bloom') + passiveSum('bloom'); },
-  get stamina(){ return 1 + lvl(S.lab, 'stam')   * 0.12 + decorSum('stam') + buildingStep('lounge') * 0.20; },
-  get heartChance() { return 0.18 * (1 + royalStep('heartc') + decorSum('heart') + outfitSum('heart') + passiveSum('heart') + buildingStep('lounge') * 0.08); },
-  get profit() { return (1 + royalStep('profit') + decorSum('profit')) * this.boostMul; },
+  get speed()  { return (1 + lvl(S.lab, 'speed')  * 0.06 + outfitSum('speed') + passiveSum('speed')) * buff('haste'); },
+  get bloom()  { return 1 + lvl(S.lab, 'bloom')  * 0.08 + passiveSum('bloom'); },
+  get stamina(){ return 1 + lvl(S.lab, 'stam')   * 0.12 + buildingStep('lounge') * 0.20; },
+  get heartChance() { return 0.18 * (1 + royalStep('heartc') + outfitSum('heart') + passiveSum('heart') + buildingStep('lounge') * 0.08); },
+  get profit() { return (1 + royalStep('profit')) * this.boostMul; },
   get premium(){ return 0.02 + royalStep('prem') + outfitSum('prem') + passiveSum('prem'); },
   get attune() { return (1.6 + royalStep('attune') + passiveSum('attune')) * buff('attune'); },
   get offlineCap() { return BASE_OFFLINE_SECONDS + royalStep('offline'); },
   stationSpd(id) {
     const st = S.stations[typeOf(id)];
-    return 1 + (st ? st.spdLvl * 0.04 : 0) + decorSum('spd') + buildingStep(id) * 0.15;
+    return 1 + (st ? st.spdLvl * 0.04 : 0) + decorBonus(id, 'spd') + buildingStep(id) * 0.15;
   },
   stationStock(id) {
     const d = stationDef(id);
@@ -676,7 +723,7 @@ export const treeDone = () => TECH.every(t => S.tech[t.id]);
 // --- economy --------------------------------------------------------------
 export function dishValue(id, premium) {
   const d = stationDef(id);
-  return d.value * stats.profit * (premium ? 10 : 1) * (1 + buildingStep(id) * 0.10);
+  return d.value * stats.profit * (premium ? 10 : 1) * (1 + buildingStep(id) * 0.10) * (1 + decorBonus(id, 'profit'));
 }
 
 // A kitchen only runs when enough bees are attuned to each element it burns.

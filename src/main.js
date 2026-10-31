@@ -229,6 +229,12 @@ async function boot() {
     }
   });
   cv.addEventListener('pointermove', e => {
+    // a mouse resting on a decoration shows what it reaches
+    if (!drag && e.pointerType === 'mouse' && !E.on) {
+      const w = toWorld(e.clientX, e.clientY), k = itemAt(w.x, w.y);
+      const peek = k && S.place[k].k === 'decor' ? k : null;
+      if (peek !== E.hover) { E.hover = peek; E.peek = peek || E.panelPeek || null; }
+    }
     if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pinch && touches.size === 2) {
       const [a, b] = [...touches.values()];

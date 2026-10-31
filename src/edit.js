@@ -9,6 +9,7 @@ export const E = {
   fresh: null,      // { kind, type, cost } a new build waiting for its spot
   ok: false,        // can it go down where the ghost is
   auto: false,      // picked up straight after buying, so Place also ends move mode
+  peek: null,       // a placed decoration whose area to show (hovered, or its panel open)
 };
 
 export function clearHold() {

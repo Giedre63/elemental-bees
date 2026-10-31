@@ -1,13 +1,13 @@
 import {
   S, crewMissing, beeStars, posOf, anchor, cellPx, lotRect, lotBuyable,
-  nextLandCost, canPlace, buildingLevel,
+  nextLandCost, canPlace, buildingLevel, decorArea, decorTargets,
 } from './state.js';
 import { E } from './edit.js';
 import { worn, wraps } from './wear.js';
 import {
   WORLD, BLOSSOM_SLOTS, LOUNGE_SLOTS, DECOR_SLOTS, STATIONS, stationDef, ELEMENTS,
   ACADEMY_POS, ACADEMY, SCATTER, BUILDINGS, BUILDING_IDS, OUTFIT_SLOTS, RARITY,
-  GROUND_BITS, GRID, LOT_COLS, FOOT, HOTEL,
+  GROUND_BITS, GRID, LOT_COLS, FOOT, HOTEL, DECOR,
 } from './data.js';
 import { sprite, animFrame } from './assets.js';
 import { fx, pops, blossomPos, tubePos, loungePos } from './sim.js';
@@ -48,6 +48,8 @@ export const panBy = (dx, dy) => { camX += dx / scale; camY += dy / scale; clamp
 export const camTop = () => camY;
 export const viewCentre = () => ({ x: camX + viewW / 2, y: camY + viewH / 2 });
 export function lookAt(x, y) { camX = x - viewW / 2; camY = y - viewH / 2; clampCam(); }
+// Put a point in the lower part of the screen, clear of a panel at the top.
+export function lookBelowPanel(x, y) { camX = x - viewW / 2; camY = y - viewH * 0.74; clampCam(); }
 
 // Zoom about a point on screen, so what's under the cursor stays put.
 export function zoomAt(clientX, clientY, factor) {
@@ -628,6 +630,8 @@ export function draw(t) {
   drawGround(t);
   drawLand();
   if (E.on) drawGridLines();
+  const aura = decorAura();
+  if (aura) drawAuraArea(aura);
   if (E.on && (E.key || E.fresh)) drawFootprint();
 
   // paint back to front so things overlap the way the slope implies
@@ -653,6 +657,57 @@ export function draw(t) {
        .filter(l => l.y > camY - 220 && l.y < camY + viewH + 260)
        .forEach(l => l.fn());
 
+  if (aura) drawAuraTags(aura);
   for (const p of pops) drawPop(p, t);
   for (const f of fx) drawFx(f);
+}
+
+// --- a decoration's reach ----------------------------------------------------
+// Shown while one is hovered, its panel is open, or it's being placed.
+function decorAura() {
+  let id = null, area = null;
+  if (E.kind === 'decor' && (E.key || E.fresh)) {
+    id = E.fresh ? E.fresh.type : S.decor[+E.key.slice(3)];
+    area = decorArea(null, E.c, E.r);
+  } else if (E.peek && S.place[E.peek]) {
+    id = S.decor[+E.peek.slice(3)];
+    area = decorArea(E.peek);
+  }
+  if (!id || !area || !DECOR[id]) return null;
+  return { id, area, d: DECOR[id], targets: decorTargets(id, area) };
+}
+
+function drawAuraArea({ area }) {
+  const c0 = Math.max(0, area.c0), r0 = Math.max(0, area.r0);
+  const c1 = Math.min(GRID.cols - 1, area.c1), r1 = Math.min(GRID.rows - 1, area.r1);
+  const [x, y] = cellPx(c0, r0), [x2, y2] = cellPx(c1 + 1, r1 + 1);
+  ctx.fillStyle = 'rgba(120,205,255,.20)';
+  ctx.fillRect(x, y, x2 - x, y2 - y);
+  ctx.setLineDash([8, 6]); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(40,120,190,.8)';
+  ctx.strokeRect(x + 1, y + 1, x2 - x - 2, y2 - y - 2);
+  ctx.setLineDash([]);
+}
+
+// Outline each thing it's helping, with the bonus over it.
+function drawAuraTags({ d, targets }) {
+  const label = '+' + Math.round(d.amt * 100) + '%';
+  for (const k of targets) {
+    const p = S.place[k], [w, h] = FOOT[p.k];
+    const [x, y] = cellPx(p.c, p.r);
+    ctx.lineWidth = 3; ctx.strokeStyle = '#f2b33d';
+    ctx.strokeRect(x + 3, y + 3, w * GRID.cell - 6, h * GRID.cell - 6);
+    const cx = x + w * GRID.cell / 2;
+    ctx.font = 'bold 12px "Trebuchet MS",sans-serif';
+    const tw = ctx.measureText(label).width + 12;
+    ctx.fillStyle = '#2f7d2a'; ctx.strokeStyle = '#173d15'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(cx - tw / 2, y + h * GRID.cell - 22, tw, 18, 8); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    ctx.fillText(label, cx, y + h * GRID.cell - 9);
+  }
+  if (d.affects === 'bee') return;
+  if (!targets.length && (E.kind === 'decor')) {
+    // nothing in reach yet: say so at the ghost
+    const [x, y] = cellPx(E.c, E.r);
+    callout(x + GRID.cell / 2, y - 4, 'Nothing in reach', null, '#a8402e');
+  }
 }

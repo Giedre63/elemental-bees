@@ -588,3 +588,36 @@ button.rename:hover{color:var(--gold2,#a9731c)}
 #fittip{top:auto}
 .dfoot{margin:8px 0 0;font-size:11px;text-align:center;color:var(--fg-dim)}
 .dfoot .ic{width:13px;height:13px;vertical-align:-2px;margin:0 2px}
+
+/* label / value rows in building panels */
+.facts{background:#fff8e6;border:2px solid #0002;border-radius:10px;padding:6px 10px}
+.facts > div{display:flex;gap:10px;padding:4px 0;border-bottom:1px solid #0001;font-size:12px}
+.facts > div:last-child{border-bottom:none}
+.facts span{flex:0 0 88px;color:var(--fg-dim)}
+.facts b{flex:1}
+
+/* hive rank badge, top left; settings, bottom right */
+#rank-badge{position:absolute;left:10px;top:8px;z-index:21;display:flex;align-items:center;gap:6px;cursor:pointer;
+  background:linear-gradient(#5a4232,#3a2820);color:var(--cream);border:2px solid var(--ink);border-radius:14px;
+  padding:4px 12px 4px 5px;box-shadow:inset 0 0 0 2px #c9963e,0 3px 0 #0005;font-family:inherit}
+#rank-badge .ic{width:34px;height:34px}
+#rank-badge span{display:flex;flex-direction:column;align-items:flex-start;line-height:1.05}
+#rank-badge b{font-size:17px;color:#ffd96a}
+#rank-badge small{font-size:10px;opacity:.85}
+#btn-settings{left:auto;right:12px;bottom:14px;width:44px;height:44px;padding:0;justify-content:center;border-radius:50%}
+#btn-settings .ic{width:26px;height:26px}
+#app.showcase #rank-badge,#app.showcase #btn-settings{display:none}
+/* ranking panel */
+.rk-head{display:flex;align-items:center;gap:10px;background:var(--bark);color:var(--cream);border:2px solid var(--ink);
+  border-radius:12px;padding:8px 12px}
+.rk-head .ic{width:42px;height:42px}
+.rk-head b{display:block;font-size:20px;color:#ffd96a}
+.rk-head small{font-size:11px;opacity:.85}
+.rk-list{display:flex;flex-direction:column;gap:3px}
+.rk-row{display:flex;align-items:center;gap:10px;background:#fff8e6;border:2px solid #0002;border-radius:9px;padding:5px 10px;font-size:12.5px}
+.rk-row.top{background:#fff1c2}
+.rk-row.me{background:#e8a317;border-color:var(--ink);font-weight:bold}
+.rk-pos{flex:0 0 38px;text-align:center}
+.rk-name{flex:1}
+.rk-score{font-weight:bold;font-variant-numeric:tabular-nums}
+.rk-gap{text-align:center;opacity:.5;line-height:.8}
