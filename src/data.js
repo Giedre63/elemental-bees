@@ -451,62 +451,125 @@ export const COPY = {
 };
 
 // --- research -------------------------------------------------------------
-// Elvenar's tech tree. Researching a node unlocks building types in the Build
-// menu (and some features); nothing gets placed for you. n is the old park
-// track position the node replaces, which sets its price on the same curve and
-// tells a pre-tree save what it had already researched. row/col lay the tree
-// out three wide; every requirement sits on an earlier row.
-const T = (id, name, row, col, req, n, unlocks, extra = {}) =>
-  ({ id, name, row, col, req, n, unlocks, ...extra });
+// The tech tree, laid out like old Elvenar mobile's: bubbles in columns, read
+// left to right, joined by arrows. Every node unlocks exactly one thing: a
+// kitchen, a blossom, a building, a decoration, a feature or a new bee. n is
+// the old park-track position the node stands in for: it prices the node on
+// the old curve and tells a track-era save what it had. col/row place the
+// bubble; rows are lanes (0 blossoms and decor, 1 kitchens, 2 bees, 3 park).
+const T = (id, name, col, row, req, n, unlock, extra = {}) =>
+  ({ id, name, col, row, req, n, unlocks: unlock ? [unlock] : [], ...extra });
 
 export const TECH = [
-  T('ember',    'Ember Cookery',     0, 1, [],                    0,  [['station', 'ember_grill'], ['blossom', 'ember']], { bee: 'ember' }),
-  T('lounge',   'Bee Hotels',        1, 0, ['ember'],             4,  [['lounge', 'lounge'], ['decor', 'prop_stump']], { bee: 'ember' }),
-  T('loam',     'Loam Milling',      1, 1, ['ember'],             7,  [['station', 'loam_mill'], ['blossom', 'loam']], { bee: 'loam' }),
-  T('lab',      'The Lab',           1, 2, ['ember'],             6,  [], { feature: 'lab' }),
-  T('outfits',  'Dress-up Stand',    2, 0, ['lounge'],            14, [], { feature: 'outfits' }),
-  T('tide',     'Tide Brewing',      2, 1, ['loam', 'lab'],       15, [['station', 'tide_cauldron'], ['blossom', 'tide']], { bee: 'tide' }),
-  T('cointree', 'Coin Orchard',      2, 2, ['loam'],              13, [['building', 'coin_tree']]),
-  T('signpost', 'Signposting',       3, 0, ['lounge', 'loam'],    11, [['decor', 'prop_sign']], { bee: 'loam' }),
-  T('academy',  'Snail Schooling',   3, 1, ['tide'],              22, [['academy', 'academy'], ['decor', 'prop_books']], { bee: 'tide' }),
-  T('parcel',   'Parcel Post',       3, 2, ['tide', 'cointree'],  20, [['building', 'order_board']]),
-  T('royal',    'The Royal Lab',     4, 0, ['lab', 'outfits'],    21, [], { feature: 'royal' }),
-  T('gale',     'Gale Whisking',     4, 1, ['tide'],              25, [['station', 'gale_whisk'], ['blossom', 'gale']], { bee: 'gale' }),
-  T('press',    'Nectar Pressing',   4, 2, ['parcel'],            29, [['building', 'nectar_press']]),
-  T('fountain', 'Waterworks',        5, 0, ['signpost'],          24, [['decor', 'prop_fountain']]),
-  T('shrine',   'Element Rites',     5, 1, ['academy'],           36, [['building', 'shrine']]),
-  T('hauler',   'Honey Hauling',     5, 2, ['cointree', 'gale'],  30, [], { feature: 'autosell', bee: 'gale' }),
-  T('lantern',  'Lamplighting',      6, 0, ['fountain'],          38, [['decor', 'prop_lantern']]),
-  T('ash',      'Ash Baking',        6, 1, ['gale', 'academy'],   33, [['station', 'ash_oven']], { bee: 'ember' }),
-  T('hatchery', 'Brood Keeping',     7, 0, ['royal', 'ash'],      37, [['building', 'hatchery']], { bee: 'loam' }),
-  T('storm',    'Storm Brewing',     7, 1, ['ash', 'shrine'],     41, [['station', 'storm_kettle']], { bee: 'gale' }),
-  T('picnic',   'Picnics',           8, 1, ['lantern', 'storm'],  45, [['decor', 'prop_picnic']]),
+  // I. Embers
+  T('grill',    'Ember Grill',      0, 1, [],                     0,  ['station', 'ember_grill']),
+  T('emberbl',  'Ember Blossom',    1, 0, ['grill'],              1,  ['blossom', 'ember']),
+  T('bee1',     'Ember Bee',        1, 2, ['grill'],              2,  null, { bee: 'ember' }),
+  T('stump',    'Stump Stool',      2, 0, ['emberbl'],            3,  ['decor', 'prop_stump']),
+  T('bee2',     'Ember Bee II',     2, 2, ['bee1'],               5,  null, { bee: 'ember' }),
+  T('hotel',    'Bee Hotel',        2, 3, ['bee1'],               4,  ['lounge', 'lounge']),
+  // II. Loam
+  T('loam',     'Loam Mill',        3, 1, ['grill', 'bee2'],      7,  ['station', 'loam_mill']),
+  T('lab',      'The Lab',          3, 3, ['hotel'],              6,  null, { feature: 'lab' }),
+  T('loambl',   'Loam Blossom',     4, 0, ['loam'],               8,  ['blossom', 'loam']),
+  T('bee3',     'Loam Bee',         4, 2, ['loam'],               9,  null, { bee: 'loam' }),
+  T('outfits',  'Dress-up Stand',   4, 3, ['lab'],                14, null, { feature: 'outfits' }),
+  T('sign',     'Honey Signpost',   5, 0, ['loambl', 'stump'],    11, ['decor', 'prop_sign']),
+  T('bee4',     'Loam Bee II',      5, 2, ['bee3'],               12, null, { bee: 'loam' }),
+  T('cointree', 'Coin Tree',        5, 3, ['lab', 'loam'],        13, ['building', 'coin_tree']),
+  // III. Tide
+  T('tide',     'Tide Cauldron',    6, 1, ['loam', 'lab'],        15, ['station', 'tide_cauldron']),
+  T('tidebl',   'Tide Blossom',     7, 0, ['tide'],               16, ['blossom', 'tide']),
+  T('bee5',     'Tide Bee',         7, 2, ['tide'],               17, null, { bee: 'tide' }),
+  T('parcel',   'Parcel Desk',      7, 3, ['cointree', 'tide'],   20, ['building', 'order_board']),
+  T('fountain', 'Little Fountain',  8, 0, ['sign', 'tidebl'],     24, ['decor', 'prop_fountain']),
+  T('bee6',     'Tide Bee II',      8, 2, ['bee5'],               23, null, { bee: 'tide' }),
+  T('royal',    'The Royal Lab',    8, 3, ['outfits', 'parcel'],  21, null, { feature: 'royal' }),
+  // IV. Gale
+  T('gale',     'Gale Whisk',       9, 1, ['tide'],               25, ['station', 'gale_whisk']),
+  T('academy',  'Snail Academy',    9, 3, ['tide', 'bee6'],       22, ['academy', 'academy']),
+  T('galebl',   'Gale Blossom',     10, 0, ['gale'],              26, ['blossom', 'gale']),
+  T('bee7',     'Gale Bee',         10, 2, ['gale'],              27, null, { bee: 'gale' }),
+  T('press',    'Nectar Press',     10, 3, ['parcel'],            29, ['building', 'nectar_press']),
+  T('books',    'Recipe Books',     11, 0, ['galebl', 'academy'], 28, ['decor', 'prop_books']),
+  T('bee8',     'Gale Bee II',      11, 2, ['bee7'],              31, null, { bee: 'gale' }),
+  T('hauler',   'Honey Hauler',     11, 3, ['cointree', 'gale'],  30, null, { feature: 'autosell' }),
+  // V. Ash and storm
+  T('ash',      'Ash Oven',         12, 1, ['gale', 'academy'],   33, ['station', 'ash_oven']),
+  T('shrine',   'Element Shrine',   12, 3, ['academy'],           36, ['building', 'shrine']),
+  T('lantern',  'Park Lantern',     13, 0, ['fountain'],          38, ['decor', 'prop_lantern']),
+  T('bee9',     'Ember Bee III',    13, 2, ['ash'],               35, null, { bee: 'ember' }),
+  T('hatchery', 'Brood Cells',      13, 3, ['royal', 'ash'],      37, ['building', 'hatchery']),
+  T('storm',    'Storm Kettle',     14, 1, ['ash', 'shrine'],     41, ['station', 'storm_kettle']),
+  T('bee10',    'Loam Bee III',     14, 2, ['bee9'],              40, null, { bee: 'loam' }),
+  T('picnic',   'Picnic Basket',    15, 0, ['lantern', 'storm'],  45, ['decor', 'prop_picnic']),
+  T('bee11',    'Gale Bee III',     15, 2, ['storm'],             43, null, { bee: 'gale' }),
+];
+// Waggles: the bees' waggle dance, which is how a hive shares what it has
+// found. They're Elvenar's knowledge points: one trickles in every so often,
+// even while you're away, up to a cap, and every research node needs some
+// poured in before coins can finish it. That's what keeps research slow.
+export const WAGGLE = { every: 90, cap: 10, start: 5, gems: 4 };
+export const techKp = t => (t.n === 0 ? 0 : 1 + Math.floor(t.n / 5));
+
+export const CHAPTERS = [
+  { name: 'Embers', col: 0 }, { name: 'Loam', col: 3 }, { name: 'Tide', col: 6 },
+  { name: 'Gale', col: 9 }, { name: 'Ash & Storm', col: 12 },
 ];
 export const techDef = id => TECH.find(t => t.id === id);
+// The old track's curve. What makes research slow now is waggles (and twice
+// as many nodes), not the coin price: the income figure the cap uses assumes
+// every kitchen is fed, so a bigger cap punished small parks hardest.
+export const techCost = (t, incomePerSec) => (t.n === 0 ? 0 : parkCost(t.n, incomePerSec));
 
-// One or two lines for each node's tooltip, in the park's own voice.
+// One line for each node's tooltip, in the park's own voice. Bees get theirs
+// from BEE_TEXT, by element.
 export const TECH_TEXT = {
-  ember:    "Where it starts. A stag beetle, a brazier, and skewers that sell for one coin each.",
-  lounge:   "Bees get tired. Give them somewhere to crawl into, and they make beeswax while they sleep.",
-  loam:     "Nessa the worm walks the wheel all day. Seed cake is worth ninety-odd times a skewer.",
+  grill:    "Where it starts. A stag beetle, a brazier, and skewers at a coin each.",
+  emberbl:  "Ember nectar grows on these. Plant them near the grill so the trip is short.",
+  stump:    "A good sitting stump. Bees fly a little faster for having somewhere to perch.",
+  hotel:    "Bees get tired. Give them tubes to crawl into, and they make beeswax while they sleep.",
+  loam:     "Nessa the worm walks the wheel all day. Seed cake is worth ninety-odd skewers.",
   lab:      "Hearts start to matter. Spend them on carrying, flight speed, regrowth and stamina.",
-  outfits:  "Clothes with stats. A sweater helps her carry more; sunglasses do something too, apparently.",
-  tide:     "A snail with a cauldron. Nectar broth is the first dish that pays in thousands.",
+  loambl:   "Loam nectar. Heavy, slow to carry, and the mill wants four per cake.",
+  outfits:  "Clothes with stats. A sweater helps her carry more.",
+  sign:     "Points at the kitchens. Nobody was lost, but profits went up a quarter anyway.",
   cointree: "Drops coins on the grass every few seconds. Tap them before the hauler gets there.",
-  signpost: "Points at the kitchens. Nobody was lost, but profits went up a quarter anyway.",
-  academy:  "The snail teaches a bee a second element, so one bee can crew two kinds of kitchen.",
+  tide:     "A snail with a cauldron. Nectar broth is the first dish worth thousands.",
+  tidebl:   "Tide nectar, for the cauldron and later the storm kettle.",
   parcel:   "Standing orders for dishes. Pim pays in gems and pollen, which coins can't buy.",
-  royal:    "Gems go here. Bigger, slower upgrades: profit, premium chance, longer offline time.",
-  gale:     "Wind-powered whisking. Cloud soufflé, and a lot of it.",
-  press:    "Stop the gauge in the gold band and every dish is worth more for a while.",
   fountain: "Blossoms near water come back faster. Nobody knows where the water comes from.",
-  shrine:   "Light one element and its bees pay double while it burns.",
+  royal:    "Gems go here. Bigger, slower upgrades: profit, premium chance, longer offline time.",
+  gale:     "Wind-powered whisking. Cloud souffle, and a lot of it.",
+  academy:  "The snail teaches a bee a second element, so one bee can crew two kinds of kitchen.",
+  galebl:   "Gale nectar. Light, and it blows about a bit.",
+  press:    "Stop the gauge in the gold band and every dish is worth more for a while.",
+  books:    "Recipes, mostly. Every kitchen cooks a bit faster with them about.",
   hauler:   "Sells what the kitchens can't hold, at half price, into a bag you collect.",
-  lantern:  "Left lit by accident the first night. More hearts, so it stayed.",
   ash:      "Needs two Ember bees and two Loam bees at once. The academy helps.",
+  shrine:   "Light one element and its bees pay double while it burns.",
+  lantern:  "Left lit by accident the first night. More hearts, so it stayed.",
   hatchery: "The queen hatches new bees for gems. There's a featured bee every three days.",
-  storm:    "Two Gale bees, two Tide bees, and tea that's worth billions a cup.",
+  storm:    "Two Gale bees, two Tide bees, and tea worth billions a cup.",
   picnic:   "Somebody's lunch, years old and still fine. Bees rest better near it.",
+};
+export const BEE_TEXT = {
+  ember: 'Ember bees crew the grill, and two of them the ash oven.',
+  loam:  'Loam bees run the mill, and two of them help at the ash oven.',
+  tide:  'Tide bees crew the cauldron, and two of them the storm kettle.',
+  gale:  'Gale bees run the whisk, and two of them the storm kettle.',
+};
+// Before every node did one thing, nodes did several. A save researched under
+// the old ids gets every node its old one covered.
+export const TECH_V4 = {
+  ember: ['grill', 'emberbl', 'bee1'], lounge: ['hotel', 'stump', 'bee2'],
+  loam: ['loam', 'loambl', 'bee3'], lab: ['lab'], outfits: ['outfits'],
+  tide: ['tide', 'tidebl', 'bee5'], cointree: ['cointree'], signpost: ['sign', 'bee4'],
+  academy: ['academy', 'books', 'bee6'], parcel: ['parcel'], royal: ['royal'],
+  gale: ['gale', 'galebl', 'bee7'], press: ['press'], fountain: ['fountain'],
+  shrine: ['shrine'], hauler: ['hauler', 'bee8'], lantern: ['lantern'],
+  ash: ['ash', 'bee9'], hatchery: ['hatchery', 'bee10'], storm: ['storm', 'bee11'],
+  picnic: ['picnic'],
 };
 export const FEATURE_TEXT = {
   lab: ['The Lab', 'Park-wide upgrades, paid in hearts.', 'nav_lab'],
@@ -514,7 +577,6 @@ export const FEATURE_TEXT = {
   royal: ['The Royal Lab', 'Big upgrades, paid in gems.', 'nav_royal'],
   autosell: ['Honey Hauler', 'Overflow sells at half price into a bag.', 'icon_bag'],
 };
-export const techCost = (t, incomePerSec) => parkCost(t.n, incomePerSec);
 
 // What you start with for nothing, to place yourself.
 export const STARTERS = [['station', 'ember_grill'], ['blossom', 'ember'], ['lounge', 'lounge']];

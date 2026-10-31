@@ -16,7 +16,7 @@ globalThis.localStorage = {
 const {
   S, incomePerSec, research, techState, techGate, hivePower, isUnlocked, ownedCount,
   buildCost, buildLimit, addFresh, roomFor, lotBuyable, buyLot, nextLandCost, spend,
-  startUpgrade, upgradeCost, buildBusy, buildingLevel, buildingMax,
+  startUpgrade, upgradeCost, buildBusy, buildingLevel, buildingMax, kpFull, pourKp,
 } = await import('../src/state.js');
 const { tick, sellAll } = await import('../src/sim.js');
 const { TECH, techCost, STATIONS, BUILDING_IDS, DECOR, ELEMENTS } = await import('../src/data.js');
@@ -40,7 +40,18 @@ function wishlist() {
 }
 
 function play() {
-  // build first: count how many of each the wishlist asks for
+  // research whenever the next node is ready and affordable
+  {
+    const inc = incomePerSec(), power = hivePower();
+    const open = TECH.filter(n => techState(n) === 'open' && power >= techGate(n))
+                     .sort((a, b) => techCost(a, inc) - techCost(b, inc) || a.n - b.n);
+    for (const n of open) if (!kpFull(n)) pourKp(n.id);
+    const go = open.find(n => kpFull(n) && S.coin >= techCost(n, inc));
+    if (go) { research(go.id); S.gem += 2; return; }
+    // saving up: don't spend more than a fifth of the next node's price on building
+    play.budget = open.length ? techCost(open[0], inc) * 0.2 : Infinity;
+  }
+  // then build: count how many of each the wishlist asks for
   const want = {};
   for (const [k, ty] of wishlist()) {
     const id = k + ':' + ty;
@@ -51,7 +62,9 @@ function play() {
       if (lot != null && S.coin >= nextLandCost() && buyLot(lot) === 'ok') lots++;
       return;
     }
-    if (spend('coin', buildCost(k, ty))) { addFresh(k, ty); built++; }
+    const c = buildCost(k, ty);
+    if (c > play.budget && ownedCount(k, ty) > 0) continue;   // a copy can wait
+    if (spend('coin', c)) { addFresh(k, ty); built++; }
     return;
   }
   // then research: the cheapest open node
@@ -59,7 +72,11 @@ function play() {
   const open = TECH.filter(n => techState(n) === 'open')
                    .sort((a, b) => techCost(a, inc) - techCost(b, inc));
   const ready = open.find(n => power >= techGate(n));
-  if (ready) { if (S.coin >= techCost(ready, inc)) { research(ready.id); S.gem += 2; } return; }
+  if (ready) {
+    if (!kpFull(ready)) { pourKp(ready.id); return; }      // waiting on waggles
+    if (S.coin >= techCost(ready, inc)) { research(ready.id); S.gem += 2; }
+    return;
+  }
   // stuck behind Hive Rank: level up the cheapest building
   if (open.length && !buildBusy()) {
     const ids = [...Object.keys(S.stations), ...Object.keys(S.buildings)]
@@ -80,7 +97,7 @@ function step(seconds) {
   }
 }
 
-research('ember', true);
+for (const id of ['grill', 'emberbl', 'bee1', 'hotel']) research(id, true);
 
 for (const mark of [60, 300, 900, 1800, 3600]) {
   step(mark - t);
@@ -103,3 +120,8 @@ if (process.env.DEBUG) {
 }
 if (process.env.DEBUG) console.log('upgrade fails', why, 'wax', S.wax, 'build', JSON.stringify(S.build));
 if (process.env.DEBUG) console.log('levels', JSON.stringify(S.levels), 'buildings', Object.keys(S.buildings));
+if (process.env.DEBUG) {
+  const { TECH: TT, techCost: tc, techKp: tk } = await import('../src/data.js');
+  console.log('done:', Object.keys(S.tech).join(','), '| kp', S.kp.toFixed(1));
+  for (const n of TT.filter(n => techState(n) === 'open')) console.log(' open', n.id, 'cost', tc(n, incomePerSec()), 'kp', tk(n), 'in', (S.techKp || {})[n.id] || 0, 'gate', techGate(n), 'hive', hivePower());
+}

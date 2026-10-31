@@ -473,3 +473,56 @@ button.rename:hover{color:var(--gold2,#a9731c)}
 #nav button,#nav button.big{width:72px}
 #nav .nav-ic,#nav button.big .nav-ic{width:52px;height:52px}
 #nav button.on .nav-ic,#nav button.big.on .nav-ic{width:56px;height:56px}
+/* Frame drawn at exactly half the art's size, its edges repeated rather than
+   stretched, and no stretched middle: the parchment is a plain fill in the
+   art's own colour. Stretching pulled one rivet strip across the whole panel. */
+#app:not([data-ui]){--panel-border:52px}
+#sheet.framed{border-image:var(--panel-img) var(--panel-slice) round;
+  background:#f3d392;background-clip:padding-box}
+#sheet.framed .sheet-body{padding:4px 4px 6px}
+
+/* waggles chip: count, progress to the next one, and + to buy */
+.chip.kpchip{position:relative;padding-right:3px;gap:4px}
+.kpchip .kpbar{display:block;width:46px;height:8px;border-radius:4px;background:#0002;border:1px solid #0004;overflow:hidden}
+.kpchip .kpbar i{display:block;height:100%;width:0;background:linear-gradient(#ffd96a,#e8a317);transition:width .3s}
+.kpchip.full .kpbar i{background:linear-gradient(#a6e07a,#5aa02c)}
+.kpchip .kpplus{pointer-events:auto;width:20px;height:20px;border-radius:50%;border:2px solid var(--ink);
+  background:#7cc35a;color:#fff;font-weight:bold;font-size:14px;line-height:1;padding:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;text-shadow:0 1px 0 #0006}
+
+/* bubble research tree */
+#sheet.wide .sheet-body{overflow:hidden;display:flex;flex-direction:column}
+.tree-head .hint{margin:0 0 2px}
+.bwrap{overflow:auto;flex:1;min-height:0;border-radius:10px;
+  background:radial-gradient(ellipse at 50% 40%,#f8e2ae,#ecc988)}
+.btree{position:relative}
+.blines{position:absolute;left:0;top:0;pointer-events:none}
+.blines path{fill:none;stroke:#8f8371;stroke-width:3;opacity:.75}
+.blines path.on{stroke:#5aa02c;opacity:1;stroke-width:3.5}
+.bnode{position:absolute;width:66px;display:flex;flex-direction:column;align-items:center;cursor:pointer}
+.bnode .bub{position:relative;width:66px;height:66px;border-radius:50%;background:#fff6dc;
+  border:4px solid #8f8371;box-shadow:0 3px 0 #0003, inset 0 -4px 0 #0001;display:flex;align-items:center;justify-content:center}
+.bnode .bub i{width:46px;height:46px;background:center/contain no-repeat;image-rendering:pixelated}
+.bnode.done .bub{border-color:#5aa02c;background:#effbe0}
+.bnode.open .bub{border-color:#e8a317;box-shadow:0 0 0 3px #ffd96a88,0 3px 0 #0003;animation:bpulse 1.6s infinite}
+.bnode.locked .bub i{filter:grayscale(.8) brightness(.95);opacity:.65}
+.bnode.locked .bub{background:#eadcbf}
+@keyframes bpulse{50%{box-shadow:0 0 0 7px #ffd96a44,0 3px 0 #0003}}
+.bnode .bdone{position:absolute;right:-6px;bottom:-4px;width:22px;height:22px;border-radius:50%;background:#5aa02c;
+  color:#fff;font-weight:bold;font-size:13px;display:flex;align-items:center;justify-content:center;border:2px solid var(--ink)}
+.bnode .bname{margin-top:5px;width:124px;text-align:center;font-size:10.5px;line-height:1.15;color:var(--ink)}
+.bnode.locked .bname{opacity:.6}
+.bnode .buy{margin-top:3px;font-size:10.5px;padding:2px 7px;white-space:nowrap}
+.bnode .buy .ic{width:13px;height:13px}
+.bnode .buy.kp{background:#fff3cf}
+.bnode .rank-bar{margin-top:3px;width:118px}
+.bnode .bkp{margin-top:2px;font-size:10px;opacity:.7;display:flex;align-items:center;gap:2px}
+.bnode .bkp .ic{width:12px;height:12px}
+.chaps{display:flex;gap:6px;justify-content:center;padding:6px 0 0;flex:0 0 auto}
+.chap{display:flex;align-items:center;gap:5px;background:#5a4636;color:#f3e6c8;border:2px solid var(--ink);
+  border-radius:9px;padding:3px 10px 3px 4px;font-family:inherit;cursor:pointer;box-shadow:0 2px 0 #0004}
+.chap span{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;
+  background:#3a2a1f;font-weight:bold;font-size:11px;color:#ffd96a}
+.chap em{font-style:normal;font-size:11px;font-weight:bold}
+.chap.on{background:#e8a317;color:var(--ink)}
+.chap.on span{background:#fff3cf;color:var(--ink)}

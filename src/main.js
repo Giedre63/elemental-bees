@@ -1,5 +1,5 @@
 import {
-  S, load, save, stats, incomePerSec, give, research, isUnlocked, addFresh,
+  S, load, save, stats, incomePerSec, give, research, isUnlocked, addFresh, regenKp,
   posOf, pxCell, lotOf, lotBuyable, ensureRoom, landCentre,
 } from './state.js';
 import { E } from './edit.js';
@@ -29,13 +29,14 @@ const DEBUG = Q.has('debug');
 // player places the grill, blossom and lounge themself (see nextStarter).
 function firstRun() {
   if (S.parkLevel > 0) return false;
-  research('ember', true);
+  for (const id of ['grill', 'emberbl', 'bee1', 'hotel']) research(id, true);
   save();
   return true;
 }
 
 function catchUp() {
   const away = (Date.now() - (S.lastSeen || Date.now())) / 1000;
+  regenKp(Math.max(0, away));
   const { coin, seconds } = offlineEarnings(away);
   if (coin > 0) {
     give('coin', coin);
@@ -307,7 +308,7 @@ async function boot() {
   if (Q.has('rename')) setTimeout(() => document.querySelector('#rename-fit,#rename')?.click(), 200);
   if (Q.has('tab')) openTab(Q.get('tab'));
   if (Q.has('thing')) setTimeout(() => openThing(Q.get('thing')), 200);
-  if (Q.has('ttip')) setTimeout(() => document.querySelector(`.tnode[data-id="${Q.get('ttip')}"]`)?.click(), 300);
+  if (Q.has('ttip')) setTimeout(() => document.querySelector(`.bnode[data-id="${Q.get("ttip")}"]`)?.click(), 900);
   if (Q.has('move')) startMove();
   if (Q.has('sleep')) S.bees.forEach(tuckIn);
   // dev: a clean picture of the park for slides. No UI, no bubbles, and

@@ -4,17 +4,19 @@ import {
   BEE_ROSTER, beeDef, RARITY, ROSTER_MAX, BEE_MAX_LEVEL, levelCarry, levelSpeed,
   UPGRADES, upgradeKind, BUILD, HIVE_GATE, BUILDING_IDS, skillCd,
   GRID, FOOT, LOT_COLS, WORLD, ACADEMY_POS, typeOf, landCost, COPY,
-  TECH, techDef, techCost, STARTERS, GRID_V2, GRID_V3, START_LOTS,
+  TECH, techDef, techCost, STARTERS, GRID_V2, GRID_V3, START_LOTS, TECH_V4, WAGGLE, techKp,
 } from './data.js';
 
 const KEY = 'elemental-bees-save-v1';
 
 export function freshState() {
   return {
-    v: 4,
+    v: 5,
     coin: 0, heart: 0, gem: 10, pollen: 0, jelly: 0, wax: 0,
     parkLevel: 0,            // research nodes done (was: park track entries)
     tech: {},                // research node id -> true
+    kp: WAGGLE.start,        // waggles in hand
+    techKp: {},              // research node id -> waggles poured in so far
     features: {},            // lab / royal / outfits / autosell
     stations: {},            // id -> { stock, premStock, buf:{el:n}, cook, spdLvl, premLvl }
     blossoms: [],            // { slot, el, nectar, max, heartAt }
@@ -71,13 +73,14 @@ export function load() {
 }
 
 export function adopt(d) {
-  if (!d || ![1, 2, 3, 4].includes(d.v)) return;
+  if (!d || ![1, 2, 3, 4, 5].includes(d.v)) return;
   S = Object.assign(freshState(), d);
   if (d.v === 1) migrateV1();
   else if (d.v === 2) migrateOld(GRID_V2);
   else if (d.v === 3) migrateOld(GRID_V3);
   if (d.v < 3) techFromTrack();
-  S.v = 4;
+  else if (d.v < 5) techFromV4();
+  S.v = 5;
   nameStrays();
   settleBees();
   syncWorld();
@@ -113,6 +116,18 @@ function settleBees() {
       addBee(el); have++;
     }
   }
+}
+
+// v3/v4 nodes unlocked several things each; v5 nodes one. Give a save every
+// new node its old ones covered.
+function techFromV4() {
+  const old = S.tech || {};
+  S.tech = {};
+  for (const [id, done] of Object.entries(old)) {
+    if (!done) continue;
+    for (const n of (TECH_V4[id] || [])) S.tech[n] = true;
+  }
+  S.parkLevel = techCount();
 }
 
 // Before the tree, progress was a position on a linear track. Every node whose
@@ -463,12 +478,42 @@ export const isUnlocked = (kind, type) => {
   return !!t && researched(t.id);
 };
 
+// Waggles put into a node so far, and whether it has all it needs.
+export const kpIn = t => (S.techKp && S.techKp[t.id]) || 0;
+export const kpFull = t => kpIn(t) >= techKp(t);
+
+// Pour what waggles you have into a node, up to what it still needs.
+export function pourKp(id) {
+  const t = techDef(id);
+  if (!t || S.tech[id] || !t.req.every(researched)) return 0;
+  S.techKp = S.techKp || {};
+  const n = Math.min(Math.floor(S.kp), techKp(t) - kpIn(t));
+  if (n <= 0) return 0;
+  S.kp -= n;
+  S.techKp[id] = kpIn(t) + n;
+  return n;
+}
+
+export function buyKp() {
+  if (!spend('gem', WAGGLE.gems)) return false;
+  S.kp += 1;
+  return true;
+}
+
+// One trickles in every WAGGLE.every seconds while under the cap.
+export function regenKp(seconds) {
+  if (S.kp >= WAGGLE.cap) return;
+  S.kp = Math.min(WAGGLE.cap, S.kp + seconds / WAGGLE.every);
+}
+export const kpNextIn = () => (S.kp >= WAGGLE.cap ? 0 : (1 - (S.kp % 1)) * WAGGLE.every);
+
 export function research(id, free) {
   const t = techDef(id);
   if (!t) return 'no';
   if (S.tech[id]) return 'done';
   if (!t.req.every(researched)) return 'locked';
   if (!free && hivePower() < techGate(t)) return 'rank';
+  if (!free && !kpFull(t)) return 'kp';
   if (!free && !spend('coin', techCost(t, incomePerSec()))) return 'coin';
   S.tech[id] = true;
   S.parkLevel = techCount();

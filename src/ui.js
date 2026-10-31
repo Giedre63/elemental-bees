@@ -7,10 +7,12 @@ import {
   findSpot, canPlace, moveTo as moveItem, copiesOf, addStationCopy, addBlossom, addLounge,
   roomFor, buyLot, nextLandCost, lotBuyable, wipe,
   techCount, researched, techState, techGate, unlockedBy, isUnlocked, research,
+  kpIn, kpFull, pourKp, buyKp, kpNextIn,
   ownedCount, buildLimit, buildCost, addFresh,
 } from './state.js';
 import {
-  TECH, techDef, techCost, STARTERS, BUILDING_IDS, STATIONS, TECH_TEXT, FEATURE_TEXT, FOOT, GLOBAL_LAB, labCost, stationSpdCost, stationPremCost,
+  TECH, techDef, techCost, STARTERS, BUILDING_IDS, STATIONS, TECH_TEXT, FEATURE_TEXT, FOOT,
+  BEE_TEXT, CHAPTERS, WAGGLE, techKp, GLOBAL_LAB, labCost, stationSpdCost, stationPremCost,
   ROYAL_LAB, royalCost, OUTFITS, OUTFIT_SLOTS, outfitUpCost, DECOR, SHOP, ELEMENTS, BOOST_SECONDS, ACADEMY, ELEMENT_IDS,
   BUILDINGS, STORIES, PRESS, SHRINE, ORDERS, UPGRADES, upgradeKind, stationDef,
   BEE_ROSTER, beeDef, RARITY, ROSTER_MAX, BEE_MAX_LEVEL, promoteCost, SUMMON,
@@ -152,6 +154,8 @@ const HUD_TIPS = {
   gem:    ['Amber Gems', 'The rare one. Summons eggs at the Brood Cells, buys outfits, and finishes a build now.'],
   jelly:  ['Royal Jelly', 'Levels a bee up. Comes from duplicate eggs and from parcel orders.'],
   wax:    ['Beeswax', 'Bee hotels make it, slowly. Building upgrades from Lv.3 need it.'],
+  kp:     ['Waggles', 'The waggle dance: how bees share what they know. One comes every ' + clock(WAGGLE.every) +
+           ", even while you're away, up to " + WAGGLE.cap + '. Research needs them poured in.'],
   pollen: ['Pollen', 'Premium dishes shed it. Levels up the clothes you already own.'],
 };
 
@@ -164,7 +168,9 @@ export function hudTip(key) {
   el.className = 'hudtip';
   let rate = '';
   if (key === 'coin') rate = `<b>${fmt(Math.round(incomePerSec()))}/s</b> right now`;
-  if (key === 'wax')  rate = `<b>${waxPerSec().toFixed(2)}/s</b> from ${S.lounges.length} lounge${S.lounges.length === 1 ? '' : 's'}`;
+  if (key === 'wax')  rate = `<b>${waxPerSec().toFixed(2)}/s</b> from ${S.lounges.length} hotel${S.lounges.length === 1 ? '' : 's'}`;
+  if (key === 'kp')   rate = S.kp >= WAGGLE.cap ? `<b>Full.</b> Spend some on research.`
+    : `Next one in <b>${clock(kpNextIn())}</b>. Tap + to buy one for ${WAGGLE.gems} gems.`;
   el.innerHTML = `<h4>${t[0]}</h4><p>${t[1]}</p>${rate ? `<p class="rate">${rate}</p>` : ''}`;
   document.getElementById('app').appendChild(el);
   const r = chip.getBoundingClientRect();
@@ -193,6 +199,11 @@ export function syncHUD() {
   const wx = $('#chip-wax');
   wx.classList.toggle('hidden', !S.lounges.length);
   wx.querySelector('span').textContent = fmt(S.wax);
+  // waggles: count, and a bar filling towards the next one
+  const kp = $('#chip-kp');
+  kp.querySelector('span').textContent = `${Math.floor(S.kp)}/${WAGGLE.cap}`;
+  kp.querySelector('.kpbar i').style.width = (S.kp >= WAGGLE.cap ? 100 : Math.round((S.kp % 1) * 100)) + '%';
+  kp.classList.toggle('full', S.kp >= WAGGLE.cap);
   const jel = $('#chip-jelly');
   jel.classList.toggle('hidden', !S.buildings.hatchery && !S.jelly);
   jel.querySelector('span').textContent = fmt(S.jelly);
@@ -215,7 +226,7 @@ export function syncHUD() {
 
   const inc = incomePerSec(), power = hivePower();
   const affordable = TECH.some(t => techState(t) === 'open' && power >= techGate(t)
-    && S.coin >= techCost(t, inc));
+    && (kpFull(t) ? S.coin >= techCost(t, inc) : S.kp >= 1));
   nav.querySelector('[data-tab="park"]').classList.toggle('ping', affordable);
 }
 
@@ -262,38 +273,94 @@ const unlockArt = ([k, t]) => k === 'station' ? stationDef(t).sprite
   : k === 'building' ? BUILDINGS[t].sprite : k === 'academy' ? 'academy' : t;
 const FEATURE_ART = { lab: 'nav_lab', outfits: 'nav_bees', royal: 'nav_royal', autosell: 'icon_bag' };
 
+// Bubbles in columns, joined by right-angled arrows that go green once the
+// node behind them is done; chapter tabs underneath, like old Elvenar mobile.
+const BT = { colW: 136, rowH: 106, padX: 34, padY: 12, bub: 66 };
+const bubPos = t => [BT.padX + t.col * BT.colW, BT.padY + t.row * BT.rowH];
+const nodeArt = t => t.bee ? 'bee_' + t.bee : t.feature ? FEATURE_TEXT[t.feature][2]
+  : t.unlocks[0] ? unlockArt(t.unlocks[0]) : 'icon_build';
+
 function renderPark() {
   title.textContent = `Research  \u00b7  ${techCount()}/${TECH.length}`;
   const inc = incomePerSec(), power = hivePower();
-  const rows = Math.max(...TECH.map(t => t.row)) + 1;
-  const cells = TECH.map(t => {
-    const st = techState(t), gate = techGate(t), cost = techCost(t, inc);
-    const arts = [...t.unlocks.map(unlockArt), ...(t.feature ? [FEATURE_ART[t.feature]] : []),
-                  ...(t.bee ? ['bee_' + t.bee] : [])];
-    let foot;
-    if (st === 'done') foot = '<span class="tdone">\u2713</span>';
-    else if (st === 'locked') foot = `<small>after ${t.req.filter(r => !researched(r)).map(r => techDef(r).name).join(' + ')}</small>`;
-    else if (power < gate) foot = rankBar(power, gate);
-    else foot = `<button class="buy" data-tech="${t.id}" ${S.coin >= cost ? '' : 'disabled'}>${icon('icon_coin')}${fmt(cost)}</button>`;
-    return `<div class="tnode ${st}" data-id="${t.id}" style="grid-column:${t.row + 1};grid-row:${t.col + 1}">
-      <h3>${t.name}</h3><div class="tun">${arts.map(a => `<i class="ic" style="${art(a)}"></i>`).join('')}</div>${foot}</div>`;
+  const cols = Math.max(...TECH.map(t => t.col)) + 1;
+  const W = BT.padX * 2 + (cols - 1) * BT.colW + BT.bub, H = BT.padY + 3 * BT.rowH + 112;
+  const nodes = TECH.map(t => {
+    const st = techState(t), gate = techGate(t), cost = techCost(t, inc), need = techKp(t), got = kpIn(t);
+    const [x, y] = bubPos(t);
+    let pill = '';
+    if (st === 'open') {
+      if (power < gate) pill = rankBar(power, gate);
+      else if (!kpFull(t)) pill = `<button class="buy kp" data-pour="${t.id}" ${S.kp >= 1 ? '' : 'disabled'}>
+        ${icon("icon_waggle")}${got}/${need} +</button>`;
+      else pill = `<button class="buy" data-tech="${t.id}" ${S.coin >= cost ? '' : 'disabled'}>
+        ${cost ? icon('icon_coin') + fmt(cost) : 'Free'}</button>`;
+    } else if (st === 'locked' && got) pill = `<small class="bkp">${icon('icon_waggle')}${got}/${need}</small>`;
+    return `<div class="bnode ${st}" data-id="${t.id}" style="left:${x}px;top:${y}px">
+      <div class="bub"><i style="${art(nodeArt(t))}"></i>${st === 'done' ? '<span class="bdone">\u2713</span>' : ''}</div>
+      <b class="bname">${t.name}</b>${pill}</div>`;
   }).join('');
-  body.innerHTML = `<div class="hint">${treeDone() ? 'Everything is researched. Your bees are very proud.'
-      : 'Research unlocks buildings. Then place them where you like from <b>Build</b>.'}</div>
-    <div class="tree" style="grid-template-columns:repeat(${rows},128px)"><svg class="tlines"></svg>${cells}</div>`;
+  // right-angled arrows from each requirement to what it opens
+  const r = BT.bub / 2;
+  const lines = TECH.flatMap(t => t.req.map(id => {
+    const q = techDef(id), [x1, y1] = bubPos(q), [x2, y2] = bubPos(t);
+    const ax = x1 + BT.bub, ay = y1 + r, bx = x2 - 6, by = y2 + r, mx = x2 - 22;
+    const on = researched(id);
+    return `<path class="${on ? 'on' : ''}" d="M${ax} ${ay}H${mx}V${by}H${bx}" marker-end="url(#${on ? 'arrOn' : 'arrOff'})"/>`;
+  })).join('');
+  const tabs = CHAPTERS.map((c, i) => `<button class="chap" data-col="${c.col}">
+      <span>${['I', 'II', 'III', 'IV', 'V'][i]}</span><em>${c.name}</em></button>`).join('');
+  body.innerHTML = `<div class="tree-head">
+      <div class="hint">${treeDone() ? 'Everything is researched. Your bees are very proud.'
+        : 'Pour waggles into a bubble, then pay to finish it. Each one unlocks one thing to place from <b>Build</b>.'}</div>
+    </div>
+    <div class="bwrap"><div class="btree" style="width:${W}px;height:${H}px">
+      <svg class="blines" width="${W}" height="${H}"><defs>
+        <marker id="arrOn" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path d="M0 0L8 4L0 8z" fill="#5aa02c"/></marker>
+        <marker id="arrOff" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path d="M0 0L8 4L0 8z" fill="#8f8371"/></marker>
+      </defs>${lines}</svg>${nodes}</div></div>
+    <div class="chaps">${tabs}</div>`;
+  const wrap = body.querySelector('.bwrap');
   body.querySelectorAll('[data-tech]').forEach(b => b.onclick = e => { e.stopPropagation(); doResearch(b.dataset.tech); });
-  body.querySelectorAll('.tnode').forEach(n => {
+  body.querySelectorAll('[data-pour]').forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const n = pourKp(b.dataset.pour);
+    if (!n) return toast('No waggles to spare. One comes every ' + clock(WAGGLE.every));
+    save(); syncHUD(); renderPark();
+  });
+  body.querySelectorAll('.chap').forEach(b => b.onclick = () => {
+    wrap.scrollTo({ left: BT.padX + +b.dataset.col * BT.colW - 20, behavior: 'smooth' });
+  });
+  const syncChap = () => {
+    const col = (wrap.scrollLeft + 40) / BT.colW;
+    const cur = CHAPTERS.reduce((k, c, i) => (col >= c.col - 0.5 ? i : k), 0);
+    body.querySelectorAll('.chap').forEach((b, i) => b.classList.toggle('on', i === cur));
+  };
+  body.querySelectorAll('.bnode').forEach(n => {
     n.onmouseenter = () => techTip(n);
     n.onmouseleave = () => { if (!tipPinned) hideTechTip(); };
     n.onclick = () => { tipPinned = !(tipPinned && tipFor === n.dataset.id); tipPinned ? techTip(n) : hideTechTip(); };
   });
-  body.onscroll = () => { tipPinned = false; hideTechTip(); };
-  drawTreeLines();
-  const open = body.querySelector('.tnode.open');
-  if (open && renderPark.snap !== false) {
-    open.scrollIntoView({ block: 'nearest', inline: 'center' });
+  wrap.onscroll = () => { tipPinned = false; hideTechTip(); syncChap(); };
+  if (renderPark.snap !== false) {
+    const open = TECH.find(t => techState(t) === 'open');
+    if (open) wrap.scrollLeft = Math.max(0, BT.padX + open.col * BT.colW - wrap.clientWidth / 3);
     renderPark.snap = false;
-  }
+  } else if (renderPark.keep != null) wrap.scrollLeft = renderPark.keep;
+  wrap.addEventListener('scroll', () => { renderPark.keep = wrap.scrollLeft; });
+  syncChap();
+}
+
+function doResearch(id) {
+  const r = research(id);
+  if (r === 'coin') return toast('Not enough honey coins');
+  if (r === 'rank') return toast('Your Hive Rank is too low for this one');
+  if (r === 'kp') return toast('It still needs waggles');
+  if (r !== 'ok') return;
+  const t = techDef(id);
+  give('gem', 2);
+  toast(t.name + ' researched  \u00b7  +2 gems' + (t.unlocks.length ? '  \u00b7  place it from Build' : ''));
+  save(); syncHUD(); renderPark();
 }
 
 // --- research tooltips: the building large, a line about it, its numbers
@@ -345,7 +412,8 @@ function techTip(node) {
   const lines = [];
   if (st === 'done') lines.push('<b class="ok">Researched</b>');
   else {
-    lines.push(`<div class="tt-l"><span>Cost</span><b>${icon('icon_coin')}${fmt(cost)}</b></div>`);
+    lines.push(`<div class="tt-l"><span>Waggles</span><b>${icon('icon_waggle')}${kpIn(t)} / ${techKp(t)} poured in</b></div>`);
+    lines.push(`<div class="tt-l"><span>Then</span><b>${icon('icon_coin')}${fmt(cost)}</b></div>`);
     if (t.req.length) lines.push(`<div class="tt-l"><span>After</span><b>${t.req.map(r =>
       `<i class="${researched(r) ? 'ok' : 'no'}">${researched(r) ? '\u2713' : '\u2715'} ${techDef(r).name}</i>`).join(' ')}</b></div>`);
     if (gate) lines.push(`<div class="tt-l"><span>Hive Rank</span><b>${rankBar(power, gate)}</b></div>` +
@@ -356,7 +424,7 @@ function techTip(node) {
   let el = document.getElementById('techtip');
   if (!el) { el = document.createElement('div'); el.id = 'techtip'; document.getElementById('app').appendChild(el); }
   el.innerHTML = `<div class="tt-hero" style="${art(hero)}"></div>
-    <h4>${t.name}</h4><p class="tt-text">${TECH_TEXT[t.id] || ''}</p>
+    <h4>${t.name}</h4><p class="tt-text">${TECH_TEXT[t.id] || (t.bee ? BEE_TEXT[t.bee] : '')}</p>
     ${rows.map(([a, n, d, stats]) => `<div class="tt-row"><i class="ic" style="${art(a)}"></i>
       <div><b>${n}</b><small>${d}</small>${stats.filter(Boolean).length ? `<em>${stats.filter(Boolean).join(' \u00b7 ')}</em>` : ''}</div></div>`).join('')}
     <div class="tt-foot">${status}</div>`;
@@ -382,34 +450,6 @@ function hideTechTip() {
   document.getElementById('techtip')?.classList.add('hidden');
 }
 
-function drawTreeLines() {
-  const tree = body.querySelector('.tree');
-  if (!tree) return;
-  const svg = tree.querySelector('.tlines');
-  const box = tree.getBoundingClientRect();
-  svg.setAttribute('width', box.width); svg.setAttribute('height', box.height);
-  const at = id => tree.querySelector(`.tnode[data-id="${id}"]`).getBoundingClientRect();
-  let out = '';
-  for (const t of TECH) for (const r of t.req) {
-    const a = at(r), b = at(t.id);
-    const x1 = a.right - box.left, y1 = a.top + a.height / 2 - box.top;
-    const x2 = b.left - box.left, y2 = b.top + b.height / 2 - box.top;
-    const mx = (x1 + x2) / 2;
-    out += `<path class="${researched(r) ? 'on' : ''}" d="M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}"/>`;
-  }
-  svg.innerHTML = out;
-}
-
-function doResearch(id) {
-  const r = research(id);
-  if (r === 'coin') return toast('Not enough honey coins');
-  if (r === 'rank') return toast('Your Hive Rank is too low for this one');
-  if (r !== 'ok') return;
-  const t = techDef(id);
-  give('gem', 2);
-  toast(t.name + ' researched  \u00b7  +2 gems' + (t.unlocks.length ? '  \u00b7  new in Build' : ''));
-  save(); syncHUD(); renderPark();
-}
 
 function renderLab() {
   title.textContent = 'Lab';
@@ -1365,6 +1405,11 @@ export function initUI() {
   $('#editbar .eb-ok').onclick = endMove;
   $('#editbar .eb-no').onclick = cancelHold;
   $('#sheet-close').onclick = closeSheet;
+  $('#chip-kp .kpplus').onclick = e => {
+    e.stopPropagation();
+    if (!buyKp()) return toast(`A waggle costs ${WAGGLE.gems} gems`);
+    toast('+1 waggle'); save(); syncHUD(); refreshOpenTab();
+  };
   addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (!sheet.classList.contains('hidden')) closeSheet();

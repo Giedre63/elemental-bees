@@ -270,6 +270,13 @@ into its slot. It's now a grid.
   `(value / cook × 900 + 300) × 2.1^(n−1)`: about fifteen minutes of that
   kitchen flat out. Each copy levels on its own; Lab upgrades are per kitchen
   type. Orders and the product rail treat copies as one dish.
+- **One unlock per node, and waggles.** The tree is now 38 bubbles in five
+  chapters, laid out like old Elvenar mobile (columns, right-angled arrows,
+  chapter tabs). Each unlocks one thing; bees are their own nodes. Waggles
+  are the knowledge points: one per 90s to a cap of 10, `1 + n/5` per node,
+  poured in before the coin price can be paid. Coin prices stay on the old
+  track curve; the waggle trickle is what slows research. A headless hour now
+  reaches 16/38 (it was 15/21).
 - **Research replaced the park track.** `TECH` in `data.js` is a 21-node tree
   laid out three wide; each node lists what it unlocks (building types,
   features) and some grant a bee, eleven in all, which is what the track used

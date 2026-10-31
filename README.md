@@ -53,9 +53,12 @@ index.html, `src/` and `assets/` beside it, retired art dropped).
 - Tap the heart bubbles over blossoms and sleeping bees.
 - Tired bees fly into a tube in a **Bee Hotel** and sleep there; z's drift out
   of the tube. The more tired, the longer they sleep. Each hotel has nine tubes.
-- **Research** (the hammer tab) is an Elvenar-style tech tree: 21 nodes, each
-  with its requirements drawn above it. Research costs coins and unlocks
-  buildings, features and some bees. It never places anything.
+- **Research** (the hammer tab) is a bubble tree in five chapters: 38 nodes,
+  each unlocking exactly one thing (a kitchen, blossom, building, decoration,
+  feature or bee), joined by arrows that turn green as you go.
+- **Waggles** (the figure-eight chip at the top) trickle in, one every 90
+  seconds up to 10, even while you're away. Pour them into a research bubble,
+  then pay coins to finish it. + on the chip buys one for 4 gems.
 - **Build** lists every building, decoration, blossom and kitchen: locked ones
   say which research opens them. Pick one, drag it where you want, Build.
   A new park starts with the Ember Grill, an Ember Blossom and a lounge free

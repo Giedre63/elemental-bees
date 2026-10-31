@@ -1,7 +1,7 @@
 import {
   S, stats, dishValue, give, inClass, attunedTo, incomePerSec,
   beeMul, crewOk, buildingStep, grantBee, setBuff, waxPerSec,
-  buildBusy, finishBuild, startCooldown, skillReady, beeStars, posOf, copiesOf,
+  buildBusy, finishBuild, startCooldown, skillReady, beeStars, posOf, copiesOf, regenKp,
 } from './state.js';
 import {
   BLOSSOM_SLOTS, LOUNGE_SLOTS, STATIONS, stationDef, ELEMENTS, ACADEMY, ACADEMY_POS,
@@ -487,6 +487,7 @@ export function useSkill(bee) {
 
 export function tick(dt) {
   dt = Math.min(dt, 0.1);
+  regenKp(dt);
   if (S.features.academy) academyTick();
   if (S.lounges.length) give('wax', waxPerSec() * dt);
   if (S.build && !buildBusy()) finishBuild();
