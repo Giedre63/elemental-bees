@@ -1,0 +1,12 @@
+{
+  "name": "elemental-bees",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cosy idle park where elemental bees cook. A Honey Bee Park-shaped base game.",
+  "scripts": {
+    "start": "python3 -m http.server 8137",
+    "assets": "./tools/manifest.sh",
+    "smoke": "node tools/smoke.mjs"
+  }
+}

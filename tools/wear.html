@@ -1,0 +1,37 @@
+<!doctype html>
+<!-- Dev sheet: every bee in every wrapped top, two frames each, at 4x.
+     http://localhost:8137/tools/wear.html -->
+<base href="../">
+<body style="margin:0;background:#a6c97c">
+<canvas id="c" width="1000" height="860"></canvas>
+<script type="module">
+import { loadAssets, sprite, animFrame } from './src/assets.js';
+import { worn } from './src/wear.js';
+await loadAssets();
+const g = document.getElementById('c').getContext('2d');
+g.imageSmoothingEnabled = false;
+const items = [null, 'sweater', 'cloak', 'apron', 'scarf'];
+// #png=ember,sweater writes that bee's still frame, dressed, as a data URL
+if (location.hash.startsWith('#png=')) {
+  const [el, it] = location.hash.slice(5).split(',');
+  document.body.textContent = 'PNG:' + worn(sprite('bee_' + el), it).toDataURL();
+  throw 0;
+}
+if (location.hash === '#zoom') {
+  ['ember', 'tide'].forEach((el, row) => ['sweater', 'apron'].forEach((it, col) => {
+    g.drawImage(worn(sprite('bee_' + el), it), col * 480, row * 420, 400, 400);
+  }));
+  throw 0;
+}
+['ember', 'gale', 'tide', 'loam'].forEach((el, row) => {
+  items.forEach((it, col) => {
+    for (const [k, f] of [[0, 0], [1, 3]]) {
+      const im = animFrame('bee_' + el + '_hover', f / 12, 12);
+      const out = it ? worn(im, it) : im;
+      g.drawImage(out, col * 200 + k * 96, row * 210 + 10, 96, 96);
+    }
+    const big = it ? worn(sprite('bee_' + el), it) : sprite('bee_' + el);
+    g.drawImage(big, col * 200 + 40, row * 210 + 100, 104, 104);
+  });
+});
+</script>

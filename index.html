@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Elemental Bees</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="park"></canvas>
+
+  <div id="hud">
+    <div class="hud-row">
+      <div class="chip" id="chip-coin"><i class="ic" data-ic="icon_coin"></i><span>0</span></div>
+      <div class="chip" id="chip-heart"><i class="ic" data-ic="icon_heart"></i><span>0</span></div>
+      <div class="chip" id="chip-gem"><i class="ic" data-ic="icon_gem"></i><span>0</span></div>
+      <div class="chip" id="chip-jelly"><i class="ic" data-ic="icon_jelly"></i><span>0</span></div>
+      <div class="chip" id="chip-wax"><i class="ic" data-ic="icon_wax"></i><span>0</span></div>
+      <div class="chip" id="chip-pollen"><i class="ic" data-ic="icon_pollen"></i><span>0</span></div>
+      <button class="chip gear" id="btn-settings"><i class="ic" data-ic="nav_gear"></i></button>
+    </div>
+  </div>
+
+  <div id="rail"></div>
+
+  <button id="boost" class="floaty">
+    <span class="boost-x">x1.0</span>
+    <span class="boost-sub">tap to charge</span>
+  </button>
+
+  <div id="editbar" class="hidden">
+    <span class="eb-msg"></span>
+    <div class="eb-row"><button class="buy ghost eb-no">Cancel</button><button class="buy eb-ok">Place</button></div>
+  </div>
+
+  <button id="bag" class="floaty hidden">
+    <i class="ic" data-ic="icon_bag"></i><span class="bag-amt">0</span>
+  </button>
+
+  <div id="tip" class="hidden"></div>
+
+  <div id="sheet" class="hidden">
+    <div class="sheet-head"><h2 id="sheet-title">Park</h2>
+      <button id="sheet-move" class="hidden"><i class="ic" data-ic="nav_pin"></i>Move</button>
+      <button id="sheet-close" title="Close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></button></div>
+    <div class="sheet-body" id="sheet-body"></div>
+  </div>
+
+  <div id="dock"></div>
+
+  <nav id="nav">
+    <button data-tab="lab"   title="Lab"><i class="nav-ic" data-ic="nav_lab"></i><em>Lab</em></button>
+    <button data-tab="royal" title="Royal Lab"><i class="nav-ic" data-ic="nav_royal"></i><em>Royal</em></button>
+    <button data-tab="bees"  title="Bees"><i class="nav-ic" data-ic="nav_bees"></i><em>Bees</em></button>
+    <button data-tab="shop"  title="Shop"><i class="nav-ic" data-ic="nav_shop"></i><em>Shop</em></button>
+    <button data-tab="park"  title="Research"><i class="nav-ic" data-ic="nav_park"></i><em>Research</em></button>
+    <button id="btn-move" title="Move"><i class="nav-ic" data-ic="nav_pin"></i><em>Move</em></button>
+    <button id="btn-build" class="big" title="Build"><i class="nav-ic" data-ic="icon_build"></i><em>Build</em></button>
+  </nav>
+
+  <div id="toasts"></div>
+</div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
