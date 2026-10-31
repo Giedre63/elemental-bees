@@ -649,78 +649,142 @@ function renderRoster(head) {
   });
 }
 
+// What an item does, in words a player would use.
+function fitEffect(o, lv) {
+  const v = o.step * Math.max(1, lv);
+  return { carry: `Carries ${pct(v)} more nectar`, speed: `Flies ${pct(v)} faster`,
+    heart: `Finds hearts ${pct(v)} more often`, prem: `+${(v * 100).toFixed(1)}% chance of premium dishes`,
+    bloom: `Blossoms regrow ${pct(v)} faster`, attune: `Attuned runs pay ${pct(v)} more` }[o.stat] || statLabel(o.stat);
+}
+const fitPrice = o => o.stars * 25;
+const RARITY_WORD = { 1: 'Common', 2: 'Rare', 3: 'Legendary' };
+const SLOT_ART = { hat: 'fit_bobble', clothes: 'fit_sweater', shoes: 'fit_boots' };
+
+// The dress-up stand. Left: the bee, her three slots. Right: whatever item is
+// picked, what it does, and one clear next step, with the reason when you
+// can't take it. Below: the items for the open slot, each with a plain state
+// (wearing / owned / price you can or can't pay).
 function renderOutfit(head = '') {
   if (!S.bees.length) { body.innerHTML = head + '<div class="hint">No bees yet.</div>'; return; }
   beeIdx = Math.min(beeIdx, S.bees.length - 1);
   const bee = S.bees[beeIdx];
+  const list = OUTFITS.filter(o => o.slot === outfitSlot);
+  let sel = OUTFITS.find(o => o.id === renderOutfit.sel && o.slot === outfitSlot)
+    || OUTFITS.find(o => o.id === bee.outfit[outfitSlot]) || list[0];
 
-  const slots = OUTFIT_SLOTS.map(s => {
-    const id = bee.outfit[s];
-    return `<div class="slot" data-slot="${s}">${id ? `<div class="art" style="${art('fit_' + id)}"></div>` : ''}
-      <small>${s}</small></div>`;
+  const slots = OUTFIT_SLOTS.map(sl => {
+    const id = bee.outfit[sl];
+    return `<button class="dslot ${sl === outfitSlot ? 'on' : ''} ${id ? 'full' : ''}" data-slot="${sl}">
+      <i style="${art(id ? 'fit_' + id : SLOT_ART[sl])}"></i>
+      <small>${id ? OUTFITS.find(o => o.id === id).name : 'Empty ' + sl}</small></button>`;
   }).join('');
 
-  const items = OUTFITS.filter(o => o.slot === outfitSlot).map(o => {
-    const lv = S.owned[o.id] || 0;
-    const on = bee.outfit[o.slot] === o.id;
-    const stars = '★'.repeat(o.stars);
-    return `<div class="item ${lv ? '' : 'lock'} ${on ? 'on' : ''}" data-fit="${o.id}">
-      <div class="art" style="${art('fit_' + o.id)}"></div>
-      <span class="lv">${lv ? 'Lv.' + lv : fmt(o.stars * 25) + '◆'}</span>
-      <span class="stars">${stars}</span></div>`;
+  const tiles = list.map(o => {
+    const lv = S.owned[o.id] || 0, on = bee.outfit[o.slot] === o.id, price = fitPrice(o);
+    const tag = on ? '<span class="dtag wear">\u2713 Wearing</span>'
+      : lv ? `<span class="dtag own">Owned \u00b7 Lv.${lv}</span>`
+      : `<span class="dtag price ${S.gem >= price ? 'ok' : 'no'}">${icon('icon_gem')}${price}</span>`;
+    return `<button class="dtile ${lv ? 'owned' : 'lock'} ${on ? 'on' : ''} ${sel && sel.id === o.id ? 'sel' : ''}" data-fit="${o.id}">
+      <span class="dstars">${'\u2605'.repeat(o.stars)}</span>
+      <i style="${art('fit_' + o.id)}"></i>${tag}</button>`;
   }).join('');
 
-  const sel = OUTFITS.find(o => o.id === renderOutfit.sel);
-  const detail = sel ? (() => {
-    const lv = S.owned[sel.id] || 0;
-    const cost = lv ? outfitUpCost(sel, lv) : sel.stars * 25;
-    const cur = lv ? 'icon_pollen' : 'icon_gem';
-    const afford = lv ? S.pollen >= cost : S.gem >= cost;
-    return `<div class="card"><div class="art" style="${art('fit_' + sel.id)}"></div>
-      <div class="meta"><h3>${sel.name}</h3>
-      <small>${statLabel(sel.stat)} ${pct(sel.step * Math.max(1, lv))}${lv ? ` · Lv.${lv}` : ' when owned'}</small></div>
-      <button class="buy" id="fit-buy" ${afford ? '' : 'disabled'}>${icon(cur)}${lv ? 'Lv up ' : 'Buy '}${fmt(cost)}</button></div>`;
-  })() : '<div class="hint">Pick an item to buy, level up or wear.</div>';
+  // the detail panel and its one next step
+  let panel = '<div class="hint">Pick an item below.</div>';
+  if (sel) {
+    const lv = S.owned[sel.id] || 0, on = bee.outfit[sel.slot] === sel.id;
+    const price = fitPrice(sel), up = lv ? outfitUpCost(sel, lv) : 0;
+    const actions = [];
+    if (!lv) {
+      const short = price - S.gem;
+      actions.push(`<button class="buy big" id="fit-act" data-act="buy" ${short > 0 ? 'disabled' : ''}>
+        ${icon('icon_gem')}Buy for ${price} gems</button>`);
+      if (short > 0) actions.push(`<p class="dwhy">You have <b>${fmt(S.gem)} gems</b>, so you need <b>${fmt(short)} more</b>.
+        Gems come from research (+2 for each one), Parcel Desk orders and the Shop.</p>`);
+    } else {
+      actions.push(`<button class="buy big ${on ? 'ghost' : ''}" id="fit-act" data-act="${on ? 'off' : 'wear'}">
+        ${on ? 'Take it off' : `Put it on ${beeName(bee)}`}</button>`);
+      const short = up - S.pollen;
+      actions.push(`<button class="buy" id="fit-up" ${short > 0 ? 'disabled' : ''}>${icon('icon_pollen')}Level up \u00b7 ${fmt(up)} pollen</button>`);
+      actions.push(`<p class="dwhy">${short > 0 ? `You have <b>${fmt(S.pollen)} pollen</b>, ${fmt(short)} short. ` : ''}
+        Next level: ${fitEffect(sel, lv + 1).toLowerCase()}. Pollen drops when a premium dish sells.</p>`);
+    }
+    const wornBy = S.bees.filter(b => b !== bee && b.outfit[sel.slot] === sel.id).map(beeName);
+    panel = `<div class="dart" style="${art('fit_' + sel.id)}"></div>
+      <h3>${sel.name}</h3>
+      <div class="drare r${sel.stars}">${'\u2605'.repeat(sel.stars)} ${RARITY_WORD[sel.stars]} ${sel.slot}</div>
+      <p class="deff">${fitEffect(sel, lv)}${lv ? ` <small>(Lv.${lv})</small>` : ''}</p>
+      ${wornBy.length ? `<p class="dnote">Also worn by ${wornBy.join(', ')}.</p>` : ''}
+      ${actions.join('')}`;
+  }
 
-  body.innerHTML = `
-    <div class="bee-strip">
-      <button id="bee-prev">‹</button>
-      <div><div class="art">${beeFig(bee, 76)}</div>
-        <div style="font-size:11px;text-align:center">${beeName(bee)} · ${beeIdx + 1}/${S.bees.length}
-        <button class="rename" id="rename-fit">rename</button></div></div>
-      <button id="bee-next">›</button>
+  body.innerHTML = head + `
+    <div class="dress">
+      <div class="dbee">
+        <div class="bee-strip">
+          <button id="bee-prev" aria-label="Previous bee">\u2039</button>
+          <div><div class="art">${beeFig(bee, 84)}</div>
+            <div class="dname">${beeName(bee)} <button class="rename" id="rename-fit">rename</button></div>
+            <small class="dcount">${beeIdx + 1} of ${S.bees.length} bees</small></div>
+          <button id="bee-next" aria-label="Next bee">\u203a</button>
+        </div>
+        <div class="dslots">${slots}</div>
+      </div>
+      <div class="dpanel">${panel}</div>
     </div>
-    <div class="slots">${slots}</div>
-    <div style="height:14px"></div>
-    <div class="tabs">${OUTFIT_SLOTS.map(s =>
-      `<button data-st="${s}" class="${s === outfitSlot ? 'on' : ''}">${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}</div>
-    <div class="items">${items}</div>
-    ${detail}
-    <div class="hint">Pollen comes from selling premium dishes. Gems buy new items.</div>`;
+    <div class="tabs">${OUTFIT_SLOTS.map(sl =>
+      `<button data-st="${sl}" class="${sl === outfitSlot ? 'on' : ''}">${sl[0].toUpperCase() + sl.slice(1)}</button>`).join('')}</div>
+    <div class="dgrid">${tiles}</div>
+    <p class="dfoot">You have ${icon('icon_gem')}<b>${fmt(S.gem)}</b> gems and ${icon('icon_pollen')}<b>${fmt(S.pollen)}</b> pollen.
+      Gems buy new items; pollen levels up the ones you own.</p>`;
 
   const rf = body.querySelector('#rename-fit');
   if (rf) rf.onclick = () => askName(bee, renderBees);
-  $('#bee-prev').onclick = () => { beeIdx = (beeIdx - 1 + S.bees.length) % S.bees.length; renderOutfit(); };
+  $('#bee-prev').onclick = () => { beeIdx = (beeIdx - 1 + S.bees.length) % S.bees.length; renderBees(); };
   $('#bee-next').onclick = () => { beeIdx = (beeIdx + 1) % S.bees.length; renderBees(); };
-  body.querySelectorAll('.tabs button[data-st]').forEach(b =>
-    b.onclick = () => { outfitSlot = b.dataset.st; renderBees(); });
-  body.querySelectorAll('.item').forEach(el => el.onclick = () => {
-    const id = el.dataset.fit;
-    renderOutfit.sel = id;
-    if (S.owned[id]) {
-      const o = OUTFITS.find(x => x.id === id);
-      if (bee.outfit[o.slot] === id) delete bee.outfit[o.slot]; else bee.outfit[o.slot] = id;
-      save();
-    }
-    renderBees();
+  body.querySelectorAll('[data-st],[data-slot]').forEach(b =>
+    b.onclick = () => { outfitSlot = b.dataset.st || b.dataset.slot; renderOutfit.sel = null; renderBees(); });
+  body.querySelectorAll('.dtile').forEach(el => {
+    el.onclick = () => { renderOutfit.sel = el.dataset.fit; renderBees(); };
+    el.onmouseenter = () => fitTip(el, bee);
+    el.onmouseleave = () => document.getElementById('fittip')?.remove();
   });
-  const fb = $('#fit-buy');
-  if (fb) fb.onclick = () => {
-    const lv = S.owned[sel.id] || 0;
-    if (lv) { if (!spend('pollen', outfitUpCost(sel, lv))) return; S.owned[sel.id] = lv + 1; }
-    else { if (!spend('gem', sel.stars * 25)) return; S.owned[sel.id] = 1; toast('Got ' + sel.name); }
+  const act = $('#fit-act');
+  if (act) act.onclick = () => {
+    if (act.dataset.act === 'buy') {
+      if (!spend('gem', fitPrice(sel))) return toast('Not enough gems');
+      S.owned[sel.id] = 1;
+      bee.outfit[sel.slot] = sel.id;
+      toast(`${sel.name} bought, and ${beeName(bee)} has it on`);
+    } else if (act.dataset.act === 'wear') { bee.outfit[sel.slot] = sel.id; toast(`${beeName(bee)} is wearing the ${sel.name}`); }
+    else delete bee.outfit[sel.slot];
     save(); syncHUD(); renderBees();
   };
+  const upb = $('#fit-up');
+  if (upb) upb.onclick = () => {
+    const lv = S.owned[sel.id] || 0;
+    if (!spend('pollen', outfitUpCost(sel, lv))) return toast('Not enough pollen');
+    S.owned[sel.id] = lv + 1;
+    toast(`${sel.name} is Lv.${lv + 1}`);
+    save(); syncHUD(); renderBees();
+  };
+}
+
+// Hover an item: its name, what it does and what it costs.
+function fitTip(el, bee) {
+  const o = OUTFITS.find(x => x.id === el.dataset.fit);
+  if (!o) return;
+  const lv = S.owned[o.id] || 0, price = fitPrice(o);
+  document.getElementById('fittip')?.remove();
+  const t = document.createElement('div');
+  t.id = 'fittip'; t.className = 'hudtip';
+  t.innerHTML = `<h4>${o.name}</h4><p>${fitEffect(o, lv)}.</p><p class="rate">${
+    bee.outfit[o.slot] === o.id ? 'Wearing it' : lv ? `Owned, Lv.${lv}. Tap, then Put it on.`
+    : S.gem >= price ? `${price} gems. Tap, then Buy.` : `${price} gems. You have ${fmt(S.gem)}.`}</p>`;
+  const app = $('#app').getBoundingClientRect(), r = el.getBoundingClientRect();
+  t.style.left = Math.min(app.width - 230, r.left - app.left) + 'px';
+  t.style.top = (r.bottom - app.top + 6) + 'px';
+  $('#app').appendChild(t);
 }
 
 const statLabel = statLabelFull;
@@ -1324,6 +1388,7 @@ export function openTab(name) {
 
 export function closeSheet() {
   stopPress();
+  document.getElementById('fittip')?.remove();
   tipPinned = false; hideTechTip();
   tab = null;
   sheet.classList.add('hidden');
