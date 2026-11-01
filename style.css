@@ -811,3 +811,19 @@ button.rename:hover{color:var(--gold2,#a9731c)}
 #btn-settings{background:linear-gradient(#2a1d16cc,#1b120ce6);border:2px solid var(--ink);
   border-radius:12px;box-shadow:0 3px 0 #0005}
 #dock .dock-label{display:none}
+/* Settings lines up with Build's right edge and tucks just above it */
+#btn-settings{right:10px;bottom:calc(8px + 78px);width:36px;height:36px;border-radius:11px}
+#btn-settings .ic{width:22px;height:22px}
+@media (max-width: 760px), (max-height: 520px) {
+  #btn-settings{right:6px;bottom:calc(72px + 64px);width:32px;height:32px}
+  #btn-settings .ic{width:20px;height:20px}
+}
+/* the free boost sits above the bee skills, both desktop and phone */
+#boost{left:12px;right:auto;bottom:172px}
+#bag{left:12px;right:auto;bottom:230px}
+#dock{bottom:112px;left:12px}
+@media (max-width: 760px), (max-height: 520px) {
+  #boost{left:8px;right:auto;bottom:268px}
+  #bag{left:8px;right:auto;bottom:322px}
+  #dock{bottom:210px;left:8px}
+}
