@@ -27,3 +27,18 @@ offset (up to 1px), so they bob together.
 The first beeswax, amber gem and waggle icons. Each drew a thin object inside a
 lot of empty space, so at HUD size they read as faint outlines. Replaced with
 chunky versions that fill their frame.
+
+## outfits-v1/ (retired 2026-11-01)
+
+The first wardrobe: sunglasses, earmuffs, bobble hat, chef toque, aviator cap,
+snorkel, spectacles, flame crown, straw sun hat, honeycomb sweater, stripy
+scarf, frilly apron, oven mitts, leaf cloak, rubber boots, bear slippers.
+Three slots (hat / clothes / shoes). Replaced by hats and cloaks only, all
+honey, nature or insect themed.
+
+## cointree-v1/ (retired 2026-11-01)
+
+The first Honey Coin Tree. Its crown carried round coins rather than honeycomb
+ones, and the prompt asked for "a few coins fallen in the grass at its roots",
+so loose coins were painted into every frame. Replaced by a tree with hexagon
+honeycomb coins and clean grass. The sleepy caterpillar stayed.

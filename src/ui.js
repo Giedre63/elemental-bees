@@ -40,9 +40,9 @@ const icon = n => `<i class="ic" style="${art(n)}"></i>`;
 
 // a bee portrait with its kit layered on, same anchors the canvas uses
 export function beeFig(b, size = 84) {
-  const top = b.outfit && b.outfit.clothes;
+  const top = b.outfit && b.outfit.cloak;
   const dressed = top && wraps(top) && wornUrl(b.el, top);
-  const kit = OUTFIT_SLOTS.filter(s => b.outfit && b.outfit[s] && !(s === 'clothes' && dressed))
+  const kit = OUTFIT_SLOTS.filter(s => b.outfit && b.outfit[s] && !(s === 'cloak' && dressed))
     .map(s => `<span class="layer l-${s}" style="${art('fit_' + b.outfit[s])}"></span>`).join('');
   const base = dressed ? `background-image:url('${dressed}')` : art('bee_' + b.el);
   return `<span class="beefig" style="width:${size}px;height:${size}px">
@@ -786,7 +786,7 @@ function fitEffect(o, lv) {
 }
 const fitPrice = o => o.stars * 25;
 const RARITY_WORD = { 1: 'Common', 2: 'Rare', 3: 'Legendary' };
-const SLOT_ART = { hat: 'fit_bobble', clothes: 'fit_sweater', shoes: 'fit_boots' };
+const SLOT_ART = { hat: 'fit_acorn', cloak: 'fit_leafcloak', shoes: 'fit_grassboots' };
 
 // The dress-up stand. Left: the bee, her three slots. Right: whatever item is
 // picked, what it does, and one clear next step, with the reason when you
@@ -1600,7 +1600,7 @@ export function syncDock() {
   if (dock.dataset.key !== key) {
     dock.dataset.key = key;
     // each disc is one bee's skill, with her face in the corner so you know whose
-    dock.innerHTML = `<span class="dock-label">Bee skills \u00b7 tap to use</span>` + list.map(b =>
+    dock.innerHTML = list.map(b =>
       `<button class="slot-skill" data-bee="${b.id}" aria-label="${SKILLS[b.rid].name}">
         <i class="ic" style="${art(SKILLS[b.rid].icon)}"></i>
         <i class="sk-bee" style="${art('bee_' + b.el)}"></i>

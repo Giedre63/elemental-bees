@@ -349,26 +349,37 @@ export const ROYAL_LAB = [
 export const royalCost = (u, lvl) => Math.ceil(u.cost * Math.pow(u.curve, lvl));
 
 // --- outfits --------------------------------------------------------------
-// hat  -> heart & premium chance | clothes -> carrying | shoes -> speed
+// Two slots: something on her head, something over her back. Everything a bee
+// wears comes off the park itself, so it's honey, plant or insect.
 export const OUTFITS = [
-  { id: 'sunglasses', name: 'Tiny Sunglasses',  slot: 'hat',     stars: 2, stat: 'prem',  step: 0.012 },
-  { id: 'earmuffs',   name: 'Fluffy Earmuffs',  slot: 'hat',     stars: 3, stat: 'heart', step: 0.05 },
-  { id: 'sweater',    name: 'Honeycomb Sweater',slot: 'clothes', stars: 3, stat: 'carry', step: 0.09 },
-  { id: 'bobble',     name: 'Bobble Hat',       slot: 'hat',     stars: 2, stat: 'heart', step: 0.035 },
-  { id: 'toque',      name: 'Chef Toque',       slot: 'hat',     stars: 3, stat: 'prem',  step: 0.018 },
-  { id: 'scarf',      name: 'Stripy Scarf',     slot: 'clothes', stars: 2, stat: 'carry', step: 0.06 },
-  { id: 'boots',      name: 'Rubber Boots',     slot: 'shoes',   stars: 2, stat: 'speed', step: 0.05 },
-  { id: 'apron',      name: 'Frilly Apron',     slot: 'clothes', stars: 2, stat: 'prem',  step: 0.01 },
-  { id: 'mitts',      name: 'Oven Mitts',       slot: 'clothes', stars: 1, stat: 'carry', step: 0.04 },
-  { id: 'sunhat',     name: 'Straw Sun Hat',    slot: 'hat',     stars: 1, stat: 'heart', step: 0.025 },
-  { id: 'specs',      name: 'Gold Spectacles',  slot: 'hat',     stars: 1, stat: 'prem',  step: 0.008 },
-  { id: 'slippers',   name: 'Bear Slippers',    slot: 'shoes',   stars: 3, stat: 'speed', step: 0.09 },
-  { id: 'flamecrown', name: 'Flame Crown',      slot: 'hat',     stars: 3, stat: 'prem',  step: 0.02 },
-  { id: 'snorkel',    name: 'Snorkel Mask',     slot: 'hat',     stars: 2, stat: 'carry', step: 0.05 },
-  { id: 'cloak',      name: 'Leaf Cloak',       slot: 'clothes', stars: 3, stat: 'speed', step: 0.08 },
-  { id: 'aviator',    name: 'Aviator Cap',      slot: 'hat',     stars: 3, stat: 'speed', step: 0.07 },
+  // hats
+  { id: 'acorn',       name: 'Acorn Cap',        slot: 'hat',   stars: 1, stat: 'carry', step: 0.04 },
+  { id: 'buttercup',   name: 'Buttercup Hood',   slot: 'hat',   stars: 1, stat: 'heart', step: 0.025 },
+  { id: 'bonnet',      name: 'Lavender Bonnet',  slot: 'hat',   stars: 1, stat: 'heart', step: 0.03 },
+  { id: 'birchcap',    name: 'Birch Bark Cap',   slot: 'hat',   stars: 2, stat: 'speed', step: 0.05 },
+  { id: 'hazelnut',    name: 'Hazelnut Helm',    slot: 'hat',   stars: 2, stat: 'carry', step: 0.06 },
+  { id: 'pinecone',    name: 'Pine Cone Hat',    slot: 'hat',   stars: 2, stat: 'carry', step: 0.055 },
+  { id: 'toadstool',   name: 'Toadstool Cap',    slot: 'hat',   stars: 2, stat: 'prem',  step: 0.012 },
+  { id: 'clovercrown', name: 'Clover Crown',     slot: 'hat',   stars: 3, stat: 'heart', step: 0.05 },
+  { id: 'combcrown',   name: 'Honeycomb Crown',  slot: 'hat',   stars: 3, stat: 'prem',  step: 0.02 },
+  // cloaks
+  { id: 'strawcloak',  name: 'Dry Grass Cloak',  slot: 'cloak', stars: 1, stat: 'carry', step: 0.045 },
+  { id: 'leafcloak',   name: 'Leaf Cloak',       slot: 'cloak', stars: 2, stat: 'speed', step: 0.06 },
+  { id: 'mosscloak',   name: 'Moss Cloak',       slot: 'cloak', stars: 2, stat: 'heart', step: 0.04 },
+  { id: 'feathercloak',name: 'Down Cloak',       slot: 'cloak', stars: 2, stat: 'carry', step: 0.07 },
+  { id: 'elytra',      name: 'Beetle Elytra',    slot: 'cloak', stars: 3, stat: 'speed', step: 0.09 },
+  { id: 'mothcloak',   name: 'Moth Wing Cloak',  slot: 'cloak', stars: 3, stat: 'speed', step: 0.08 },
+  { id: 'ambercape',   name: 'Amber Cape',       slot: 'cloak', stars: 3, stat: 'prem',  step: 0.018 },
+  // shoes
+  { id: 'grassboots',  name: 'Woven Grass Boots',slot: 'shoes', stars: 1, stat: 'speed', step: 0.03 },
+  { id: 'petalshoes',  name: 'Petal Slippers',   slot: 'shoes', stars: 1, stat: 'heart', step: 0.02 },
+  { id: 'acornboots',  name: 'Acorn Boots',      slot: 'shoes', stars: 2, stat: 'carry', step: 0.05 },
+  { id: 'mossboots',   name: 'Moss Booties',     slot: 'shoes', stars: 2, stat: 'speed', step: 0.05 },
+  { id: 'toadstoolboots', name: 'Toadstool Boots', slot: 'shoes', stars: 2, stat: 'heart', step: 0.035 },
+  { id: 'waxclogs',    name: 'Beeswax Clogs',    slot: 'shoes', stars: 3, stat: 'carry', step: 0.08 },
+  { id: 'shellshoes',  name: 'Snail Shell Shoes',slot: 'shoes', stars: 3, stat: 'speed', step: 0.085 },
 ];
-export const OUTFIT_SLOTS = ['hat', 'clothes', 'shoes'];
+export const OUTFIT_SLOTS = ['hat', 'cloak', 'shoes'];
 export const outfitUpCost = (o, lvl) => Math.ceil(o.stars * 4 * Math.pow(1.35, lvl));
 
 // --- decor ----------------------------------------------------------------

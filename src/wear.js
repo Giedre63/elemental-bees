@@ -10,12 +10,14 @@ import { sprite } from './assets.js';
 
 // crop: the part of the item art that is just fabric, [x0, y0, x1, y1] on 48px.
 // tile: the fabric repeats at its own pixel size rather than being stretched.
-const WRAP = {
-  sweater: { crop: [13, 16, 35, 36], tile: true, rib: '#f1e2c2', ribDark: '#c8ad84', region: 'body' },
-  cloak:   { crop: [10, 12, 38, 34], region: 'back' },
-  apron:   { fill: '#f7fbff', frill: '#a9c8e4', strap: '#a9c8e4', region: 'belly' },
-  scarf:   { stripes: ['#c9372c', '#f6e6c8'], region: 'neck' },
-};
+const WRAP = (() => {
+  // Cloaks are painted onto the bee's back from their own fabric, so each one
+  // keeps its colour and weave. Hats stay as overlays: they sit on her head.
+  const cloaks = ['leafcloak', 'strawcloak', 'mosscloak', 'elytra', 'feathercloak', 'mothcloak', 'ambercape'];
+  const o = {};
+  for (const id of cloaks) o[id] = { crop: [12, 14, 36, 36], tile: true, region: 'back' };
+  return o;
+})();
 const hex = s => [1, 3, 5].map(k => parseInt(s.slice(k, k + 2), 16));
 
 // The wings share their pale blue with the Gale bee's body and the Tide bee's
@@ -77,7 +79,12 @@ function inRegion(spec, m, x, y) {
   const c = m.collar(y);
   switch (spec.region) {
     case 'body':  return x < c && y >= m.top;
-    case 'back':  return x < c + 3 && y < m.cy + m.h * 0.12 + Math.round(Math.sin(x * 1.3) * 1.6) && y >= m.top;
+    case 'back': {
+      // a cloak hangs off her back: behind the face line, from the shoulders
+      // down, with a soft wavy hem rather than a straight cut
+      const hem = m.cy + m.h * 0.30 + Math.round(Math.sin(x * 0.9) * 2.2);
+      return x < c - 3 && y > m.top + m.h * 0.22 && y < hem;
+    }
     case 'belly': {
       // a rounded bib rising from the bottom front, stopping above the legs
       if (y > m.bot - 4) return false;

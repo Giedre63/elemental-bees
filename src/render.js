@@ -94,23 +94,29 @@ function blit(name, x, y, size, flip) {
   return true;
 }
 
-// Rows of empty space under a sprite's art. Buildings are drawn so their
-// lowest painted pixel sits on the anchor; drawn from the image edge they
-// hover 6-12px above their own shadow. Measured once per sprite, from the
-// first frame of an animation so the frames don't jitter.
+// Rows of empty space under a sprite's art. Buildings are drawn so their base
+// sits on the anchor; drawn from the image edge they hover above their own
+// shadow. Measured per frame, because animation frames rarely agree on where
+// the bottom is, and using one frame's figure for all of them makes the
+// building jitter against its shadow. A row only counts as the base once a
+// few pixels wide, so a dangling coin or leaf doesn't drag the whole sprite.
 const pads = new Map();
-function padOf(key, im) {
-  if (pads.has(key)) return pads.get(key);
+function padOf(im) {
+  let pad = pads.get(im);
+  if (pad != null) return pad;
   const cv = document.createElement('canvas');
   cv.width = im.width; cv.height = im.height;
   const g = cv.getContext('2d');
   g.drawImage(im, 0, 0);
   const A = g.getImageData(0, 0, im.width, im.height).data;
-  let pad = 0;
-  rows: for (let y = im.height - 1; y >= 0; y--, pad++) {
-    for (let x = 0; x < im.width; x++) if (A[(y * im.width + x) * 4 + 3] > 40) break rows;
+  const floor = Math.max(3, Math.round(im.width * 0.05));
+  pad = 0;
+  for (let y = im.height - 1; y >= 0; y--, pad++) {
+    let n = 0;
+    for (let x = 0; x < im.width; x++) if (A[(y * im.width + x) * 4 + 3] > 40) n++;
+    if (n >= floor) break;
   }
-  pads.set(key, pad);
+  pads.set(im, pad);
   return pad;
 }
 
@@ -118,9 +124,8 @@ function padOf(key, im) {
 function plant(name, x, y, size, t = 0, fps) {
   const im = fps ? animFrame(name, t, fps) : sprite(name);
   if (!im) return false;
-  const first = fps ? animFrame(name, 0, fps) : im;
   const w = size, h = size * (im.height / im.width);
-  const drop = padOf(name, first) * (h / im.height);
+  const drop = padOf(im) * (h / im.height);
   ctx.drawImage(im, x - w / 2, y - h + drop, w, h);
   return true;
 }
@@ -464,7 +469,7 @@ function drawBee(b, t) {
   const sc = b.mode === 'enter' ? Math.max(0.12, 1 - b.t / 0.45)
            : b.mode === 'leave' ? Math.min(1, 0.12 + b.t / 0.35) : 1;
   if (sc < 1) {
-    const top = b.outfit && b.outfit.clothes;
+    const top = b.outfit && b.outfit.cloak;
     const fr = sprite('bee_' + b.el);
     const im = top && wraps(top) ? worn(fr, top) : fr;
     if (im) drawImg(im, b.x, b.y + 8 * (1 - sc), 40 * sc, b.face === -1);
@@ -481,7 +486,7 @@ function drawBee(b, t) {
   }
   const flip = b.face === -1;
   // body clothes are painted into the frame itself; see wear.js
-  const top = b.outfit && b.outfit.clothes;
+  const top = b.outfit && b.outfit.cloak;
   const frame = animFrame('bee_' + b.el + '_hover', t + b.id * 0.17, 12) || sprite('bee_' + b.el);
   const body = top && wraps(top) ? worn(frame, top) : frame;
   if (body) drawImg(body, b.x, b.y + bob, 40, flip);
@@ -508,10 +513,12 @@ function drawBee(b, t) {
 }
 
 // hat, jumper and boots painted over the bee at fixed anchors
+// dx/dy are fractions of the bee's drawn height, from her feet. dx is
+// positive towards the face, which is the way she is flying.
 const KIT_ANCHOR = {
-  hat:     { dy: 0.74, size: 0.50 },
-  clothes: { dy: 0.34, size: 0.58 },
-  shoes:   { dy: 0.04, size: 0.44 },
+  hat:   { dx: 0.17, dy: 0.72, size: 0.38 },
+  cloak: { dx: -0.12, dy: 0.44, size: 0.46 },
+  shoes: { dx: 0.02, dy: 0.06, size: 0.34 },
 };
 
 function drawKit(b, baseY, flip) {
@@ -521,7 +528,9 @@ function drawKit(b, baseY, flip) {
     const id = b.outfit[slot];
     if (!id || wraps(id)) continue;
     const a = KIT_ANCHOR[slot];
-    blit('fit_' + id, b.x, baseY - h * a.dy + h * a.size, h * a.size, flip);
+    if (!a) continue;
+    const dx = h * a.dx * (flip ? -1 : 1);
+    blit('fit_' + id, b.x + dx, baseY - h * a.dy + h * a.size, h * a.size, flip);
   }
 }
 

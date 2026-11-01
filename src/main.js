@@ -12,7 +12,7 @@ import {
   dropHeld, cancelHold,
 } from './ui.js';
 import {
-  stationDef, ELEMENTS, OUTFITS, FOOT, GRID, TECH, STARTERS, DECOR, BUILDING_IDS,
+  stationDef, ELEMENTS, OUTFITS, OUTFIT_SLOTS, FOOT, GRID, TECH, STARTERS, DECOR, BUILDING_IDS,
 } from './data.js';
 import { fmt, clock } from './num.js';
 
@@ -177,7 +177,7 @@ async function boot() {
     // dev: dress the whole roster, to check the kit overlays
     const pick = sl => OUTFITS.filter(o => o.slot === sl);
     S.bees.forEach((b, i) => {
-      for (const sl of ['hat', 'clothes', 'shoes']) {
+      for (const sl of OUTFIT_SLOTS) {
         const o = pick(sl)[i % pick(sl).length];
         S.owned[o.id] = S.owned[o.id] || 1;
         b.outfit[sl] = o.id;

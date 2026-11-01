@@ -12,7 +12,7 @@ const KEY = 'elemental-bees-save-v1';
 
 export function freshState() {
   return {
-    v: 5,
+    v: 6,
     coin: 0, heart: 0, gem: 10, pollen: 0, jelly: 0, wax: 0,
     parkLevel: 0,            // research nodes done (was: park track entries)
     tech: {},                // research node id -> true
@@ -78,14 +78,15 @@ export function load() {
 }
 
 export function adopt(d) {
-  if (!d || ![1, 2, 3, 4, 5].includes(d.v)) return;
+  if (!d || ![1, 2, 3, 4, 5, 6].includes(d.v)) return;
   S = Object.assign(freshState(), d);
   if (d.v === 1) migrateV1();
   else if (d.v === 2) migrateOld(GRID_V2);
   else if (d.v === 3) migrateOld(GRID_V3);
   if (d.v < 3) techFromTrack();
   else if (d.v < 5) techFromV4();
-  S.v = 5;
+  if (d.v < 6) retireOldOutfits();
+  S.v = 6;
   nameStrays();
   settleBees();
   syncWorld();
@@ -133,6 +134,25 @@ function techFromV4() {
     for (const n of (TECH_V4[id] || [])) S.tech[n] = true;
   }
   S.parkLevel = techCount();
+}
+
+// The wardrobe was redrawn: hats, cloaks and shoes, all of it from the park. Anything a bee
+// is wearing that no longer exists comes off, and what she owned is paid back
+// in gems so nothing is simply taken away.
+function retireOldOutfits() {
+  const live = new Set(OUTFITS.map(o => o.id));
+  let back = 0;
+  for (const [id, lv] of Object.entries(S.owned || {})) {
+    if (live.has(id) || !lv) continue;
+    back += 25 * lv;
+    delete S.owned[id];
+  }
+  for (const b of S.bees) {
+    for (const slot of Object.keys(b.outfit || {})) {
+      if (!live.has(b.outfit[slot])) delete b.outfit[slot];
+    }
+  }
+  if (back) S.gem += back;
 }
 
 // Before the tree, progress was a position on a linear track. Every node whose
