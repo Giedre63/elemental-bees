@@ -3,7 +3,7 @@ import {
   incomePerSec, inClass, beeName, beeStars, beeMul, crewMissing, crewOk,
   buildingLevel, buildingMax, buildingStep, upgradeCost, upgradeWax,
   startUpgrade, buildBusy, buildLeft, rushBuild, waxPerSec,
-  hivePower, hiveGateFor, hiveGateMet, skillReady, skillLeft, buffLeft,
+  hivePower, hiveGateFor, hiveGateMet, skillReady, skillLeft, buffLeft, hiveName,
   findSpot, canPlace, moveTo as moveItem, copiesOf, addStationCopy, addBlossom, addLounge,
   roomFor, buyLot, nextLandCost, lotBuyable, wipe,
   techCount, researched, techState, techGate, unlockedBy, isUnlocked, research,
@@ -57,8 +57,8 @@ export const kitchenName = key =>
   stationDef(key).name + (copyNo(key) > 1 ? ' ' + copyNo(key) : '');
 
 const statLabelFull = s => ({
-  carry: 'Carrying Capacity', speed: 'Flight Speed', heart: 'Flower Heart Chance',
-  prem: 'Premium Chance', bloom: 'Blossom Regrowth', attune: 'Attunement Bonus',
+  carry: 'Carries more', speed: 'Flies faster', heart: 'Finds more hearts',
+  prem: 'More premium dishes', bloom: 'Blossoms regrow sooner', attune: 'Attuned runs pay more',
 }[s] || s);
 
 // Every building takes levels. One row, same shape everywhere.
@@ -85,7 +85,7 @@ function upgradeRow(id) {
     <div class="meta"><h3>Level ${lv}<small> / ${max}</small></h3>
       <small>${kind.per.join(' \u00b7 ')}${maxed ? '' :
         ' \u00b7 takes ' + clock(BUILD.seconds(lv))}</small></div>
-    <button class="buy" id="do-upgrade" ${can ? '' : 'disabled'}>${price}</button></div>`;
+    <button class="buy" id="do-upgrade"${maxed || busy ? '' : costAttr({ coin: cost, wax })} ${can ? '' : 'disabled'}>${price}</button></div>`;
 }
 
 function wireUpgrade(id, rerender) {
@@ -111,21 +111,51 @@ function crewRow(id) {
   const d = stationDef(id);
   const gaps = crewMissing(id);
   const need = Object.entries(d.crew || {}).map(([el, n]) =>
-    `${icon('sigil_' + el)}${n} ${ELEMENTS[el].name}`).join('  ');
-  // where the missing bees could come from, in the order you'd reach them
-  const ways = [];
-  for (const el of Object.keys(gaps || {})) {
-    const t = TECH.find(n => n.bee === el && !researched(n.id));
-    if (t) ways.push(`research <b>${t.name}</b> (it brings a ${ELEMENTS[el].name} bee)`);
+    `${n} ${ELEMENTS[el].name}`).join(' and ');
+  if (!gaps) {
+    return `<div class="card"><div class="meta"><h3>Crew ready</h3>
+      <small>Runs on ${need}. Attuned bees only: born to it, or taught at the Academy.</small></div>
+      <div class="done">\u2713</div></div>`;
   }
-  if (gaps && S.place.academy) ways.push('teach a bee at the Snail Academy');
-  if (gaps && S.buildings.hatchery) ways.push('hatch one at the Brood Cells');
-  return `<div class="card ${gaps ? 'locked' : ''}">
-    <div class="meta"><h3>Crew ${gaps ? 'short' : 'ready'}</h3>
-      <small>Needs ${need} bee${Object.values(d.crew || {}).some(n => n > 1) ? 's' : ''} to run.
-      ${gaps ? (ways.length ? 'To get one: ' + ways.join(', or ') + '.' : '') : ''}</small></div>
-    ${gaps ? icon('icon_lock') : '<div class="done">\u2713</div>'}</div>`;
+  // what the player can actually do about it, soonest first
+  const el = Object.keys(gaps)[0];
+  const node = TECH.find(t => t.bee === el && !researched(t.id));
+  let act = '', why;
+  if (node) {
+    why = `Research <b>${node.name}</b> and she joins the park.`;
+    act = `<button class="buy" id="crew-go" data-go="${node.id}">Show it</button>`;
+  } else if (S.buildings.hatchery) {
+    why = 'Hatch one at the Brood Cells, or teach a bee this element at the Academy.';
+    act = `<button class="buy" id="crew-hatch">Brood Cells</button>`;
+  } else if (S.place.academy) {
+    why = 'Teach a bee this element at the Snail Academy.';
+    act = `<button class="buy" id="crew-school">Academy</button>`;
+  } else {
+    why = 'More research will bring one.';
+  }
+  const miss = Object.entries(gaps).map(([e, n]) => `${n} ${ELEMENTS[e].name}`).join(' and ');
+  return `<div class="card locked"><div class="art" style="${art('bee_' + el)}"></div>
+    <div class="meta"><h3>Short of ${miss} bee${Object.values(gaps).some(n => n > 1) ? 's' : ''}</h3>
+      <small>Runs on ${need}. ${why}</small></div>
+    ${act}</div>`;
 }
+
+// Open the research tree with one node picked out.
+export function showResearch(id) {
+  renderPark.snap = false;
+  renderPark.focus = id;
+  openTab('park');
+}
+
+function wireCrew(rerender) {
+  const g = body.querySelector('#crew-go');
+  if (g) g.onclick = () => showResearch(g.dataset.go);
+  const h = body.querySelector('#crew-hatch');
+  if (h) h.onclick = () => openBuilding('hatchery');
+  const a = body.querySelector('#crew-school');
+  if (a) a.onclick = () => openAcademy();
+}
+
 
 export function toast(msg) {
   const el = document.createElement('div');
@@ -202,7 +232,7 @@ export function syncHUD() {
   // hive rank badge, and a note when you pass another hive
   const st = standings(), me = st.find(r => r.me);
   $('#rank-pos').textContent = '#' + me.pos;
-  $('#rank-pts').textContent = 'Hive Rank ' + fmt(me.score);
+  $('#rank-pts').textContent = hiveName() === 'Your hive' ? 'Hive Rank ' + fmt(me.score) : hiveName();
   if (S.lastPos && me.pos < S.lastPos) {
     const passed = st[me.pos];
     toast(`You passed ${passed ? passed.name : 'a hive'}. Now #${me.pos} in the county.`);
@@ -224,7 +254,7 @@ export function syncHUD() {
   bt.querySelector('.boost-x').textContent = 'x' + stats.boostMul.toFixed(1);
   bt.querySelector('.boost-sub').textContent = live
     ? clock((S.boostUntil - Date.now()) / 1000)
-    : 'free boost';
+    : 'sunny spell';
 
   const bag = $('#bag');
   bag.classList.toggle('hidden', !S.features.autosell || S.bag <= 0);
@@ -270,8 +300,33 @@ export function syncRail() {
 }
 
 // ---------------------------------------------------------------- panels
-function cardBuy(costText, canAfford, cur) {
-  return `<button class="buy" ${canAfford ? '' : 'disabled'}>${icon(cur)}${costText}</button>`;
+function cardBuy(costText, canAfford, cur, cost) {
+  return `<button class="buy"${costAttr(cur, cost)} ${canAfford ? '' : 'disabled'}>${icon(cur)}${costText}</button>`;
+}
+
+// Buy buttons carry what they cost, so their enabled state can be kept current
+// between renders. Panels only redraw every few seconds; coins arrive every
+// tick, and a button that stays grey after you can afford it reads as broken.
+// costAttr('icon_coin', 500) or costAttr({ coin: 500, wax: 21 }).
+const CUR_OF = { icon_coin: 'coin', icon_heart: 'heart', icon_gem: 'gem',
+  icon_jelly: 'jelly', icon_wax: 'wax', icon_pollen: 'pollen', icon_waggle: 'kp' };
+function costAttr(cur, cost) {
+  const o = typeof cur === 'object' ? cur : (CUR_OF[cur] && cost != null ? { [CUR_OF[cur]]: cost } : null);
+  if (!o) return '';
+  const parts = Object.entries(o).filter(([, n]) => n > 0).map(([k, n]) => `${k}:${n}`);
+  return parts.length ? ` data-need="${parts.join(',')}"` : '';
+}
+
+// Re-reads every priced button in the open panel. Cheap: no re-render, so
+// scroll, hover and tooltips all survive.
+export function syncBuys() {
+  for (const b of document.querySelectorAll('#sheet [data-need]')) {
+    const can = b.dataset.need.split(',').every(part => {
+      const [k, n] = part.split(':');
+      return (k === 'kp' ? Math.floor(S.kp) : S[k] || 0) >= +n;
+    });
+    if (b.disabled === can) b.disabled = !can;
+  }
 }
 
 // ---------------------------------------------------------------- research
@@ -285,7 +340,7 @@ const FEATURE_ART = { lab: 'nav_lab', outfits: 'nav_bees', royal: 'nav_royal', a
 
 // Bubbles in columns, joined by right-angled arrows that go green once the
 // node behind them is done; chapter tabs underneath, like old Elvenar mobile.
-const BT = { colW: 136, rowH: 106, padX: 34, padY: 12, bub: 66 };
+const BT = { colW: 136, rowH: 118, padX: 34, padY: 12, bub: 66 };
 const bubPos = t => [BT.padX + t.col * BT.colW, BT.padY + t.row * BT.rowH];
 const nodeArt = t => t.bee ? 'bee_' + t.bee : t.feature ? FEATURE_TEXT[t.feature][2]
   : t.unlocks[0] ? unlockArt(t.unlocks[0]) : 'icon_build';
@@ -294,21 +349,21 @@ function renderPark() {
   title.textContent = `Research  \u00b7  ${techCount()}/${TECH.length}`;
   const inc = incomePerSec(), power = hivePower();
   const cols = Math.max(...TECH.map(t => t.col)) + 1;
-  const W = BT.padX * 2 + (cols - 1) * BT.colW + BT.bub, H = BT.padY + 3 * BT.rowH + 112;
+  const W = BT.padX * 2 + (cols - 1) * BT.colW + BT.bub, H = BT.padY + 3 * BT.rowH + 132;
   const nodes = TECH.map(t => {
     const st = techState(t), gate = techGate(t), cost = techCost(t, inc), need = techKp(t), got = kpIn(t);
     const [x, y] = bubPos(t);
     let pill = '';
     if (st === 'open') {
-      if (power < gate) pill = rankBar(power, gate);
-      else if (!kpFull(t)) pill = `<button class="buy kp" data-pour="${t.id}" ${S.kp >= 1 ? '' : 'disabled'}>
+      if (power < gate) pill = rankBar(power, gate, true);
+      else if (!kpFull(t)) pill = `<button class="buy kp" data-pour="${t.id}"${costAttr('icon_waggle', 1)} ${S.kp >= 1 ? '' : 'disabled'}>
         ${icon("icon_waggle")}${got}/${need} +</button>`;
-      else pill = `<button class="buy" data-tech="${t.id}" ${S.coin >= cost ? '' : 'disabled'}>
+      else pill = `<button class="buy" data-tech="${t.id}"${costAttr('icon_coin', cost)} ${S.coin >= cost ? '' : 'disabled'}>
         ${cost ? icon('icon_coin') + fmt(cost) : 'Free'}</button>`;
     } else if (st === 'locked' && got) pill = `<small class="bkp">${icon('icon_waggle')}${got}/${need}</small>`;
     return `<div class="bnode ${st}" data-id="${t.id}" style="left:${x}px;top:${y}px">
       <div class="bub"><i style="${art(nodeArt(t))}"></i>${st === 'done' ? '<span class="bdone">\u2713</span>' : ''}</div>
-      <b class="bname">${t.name}</b>${pill}</div>`;
+      <b class="bname">${t.name}</b><em class="bsub">${nodeSub(t)}</em>${pill}</div>`;
   }).join('');
   // right-angled arrows from each requirement to what it opens
   const r = BT.bub / 2;
@@ -352,7 +407,16 @@ function renderPark() {
     n.onclick = () => { tipPinned = !(tipPinned && tipFor === n.dataset.id); tipPinned ? techTip(n) : hideTechTip(); };
   });
   wrap.onscroll = () => { tipPinned = false; hideTechTip(); syncChap(); };
-  if (renderPark.snap !== false) {
+  if (renderPark.focus) {
+    const t = techDef(renderPark.focus);
+    const el = body.querySelector(`.bnode[data-id="${renderPark.focus}"]`);
+    if (t && el) {
+      wrap.scrollLeft = Math.max(0, BT.padX + t.col * BT.colW - wrap.clientWidth / 2 + BT.bub / 2);
+      el.classList.add('hunted');
+      tipPinned = true; techTip(el);
+    }
+    renderPark.focus = null;
+  } else if (renderPark.snap !== false) {
     const open = TECH.find(t => techState(t) === 'open');
     if (open) wrap.scrollLeft = Math.max(0, BT.padX + open.col * BT.colW - wrap.clientWidth / 3);
     renderPark.snap = false;
@@ -448,11 +512,32 @@ function techTip(node) {
   y = Math.max(8, Math.min(app.height - h - 8, y));
   el.style.left = Math.max(8, x) + 'px'; el.style.top = y + 'px';
 }
-// "242 / 400" with a bar, green when it's met
-function rankBar(have, need) {
+// "242 / 400" with a bar, green when it's met. Compact on a tree node, where
+// there's only room for a line of text and a hairline of bar.
+function rankBar(have, need, compact) {
   const f = Math.min(1, have / need), met = have >= need;
-  return `<span class="rank-bar ${met ? 'met' : ''}"><span class="rb-txt">${met ? '\u2713 ' : ''}Hive Rank ${fmt(have)} / ${fmt(need)}</span>
+  const txt = compact ? `${met ? '\u2713 ' : ''}Rank ${fmt(have)}/${fmt(need)}`
+    : `${met ? '\u2713 ' : ''}Hive Rank ${fmt(have)} / ${fmt(need)}`;
+  return `<span class="rank-bar ${met ? 'met' : ''} ${compact ? 'mini' : ''}"><span class="rb-txt">${txt}</span>
     <span class="rb-track"><span style="width:${Math.round(f * 100)}%"></span></span></span>`;
+}
+
+// One short line under a node: what researching it actually hands you.
+function nodeSub(t) {
+  if (t.bee) return `+1 ${ELEMENTS[t.bee].name} bee`;
+  if (t.feature) return { lab: 'Spend hearts here', outfits: 'Dress the bees',
+    royal: 'Spend gems here', autosell: 'Sells the overflow' }[t.feature] || '';
+  const u = t.unlocks[0];
+  if (!u) return '';
+  const [k, ty] = u;
+  if (k === 'station') return stationDef(ty).dish;
+  if (k === 'blossom') return `${ELEMENTS[ty].name} nectar`;
+  if (k === 'lounge') return 'Bees sleep here';
+  if (k === 'academy') return 'Second elements';
+  if (k === 'decor') return DECOR[ty].effect.replace(/^Kitchens nearby |^Blossoms nearby |^Bees /, '');
+  if (k === 'building') return { coin_tree: 'Coins on the grass', order_board: 'Orders for gems',
+    nectar_press: 'A profit boost', shrine: 'Double pay, briefly', hatchery: 'Hatch new bees' }[ty] || '';
+  return '';
 }
 
 function hideTechTip() {
@@ -466,15 +551,15 @@ function renderLab() {
   const cards = [];
   for (const u of GLOBAL_LAB) {
     const lv = S.lab[u.id] || 0, cost = labCost(u, lv);
-    cards.push(ucard(u.name + ' ' + pct(u.step), u.art, `Lv.${lv}`, fmt(cost), S.heart >= cost,
-      'icon_heart', `lab:${u.id}`));
+    cards.push(ucard(u.name, u.art, `Lv.${lv} \u00b7 ${u.blurb}, ${pct(u.step)} a level`,
+      fmt(cost), S.heart >= cost, 'icon_heart', `lab:${u.id}`, cost));
   }
   for (const id of Object.keys(S.stations).filter(k => !k.includes('#'))) {
     const d = stationDef(id), st = S.stations[id];
-    cards.push(ucard(`${d.name} Production SPD +4%`, d.dishSprite, `Lv.${st.spdLvl}`,
-      fmt(stationSpdCost(st.spdLvl)), S.heart >= stationSpdCost(st.spdLvl), 'icon_heart', `spd:${id}`));
-    cards.push(ucard(`${d.name} Premium Chance +1.5%`, d.dishSprite, `Lv.${st.premLvl}`,
-      fmt(stationPremCost(st.premLvl)), S.heart >= stationPremCost(st.premLvl), 'icon_heart', `prem:${id}`));
+    cards.push(ucard(`${d.name}: a hotter fire`, d.dishSprite, `Lv.${st.spdLvl} \u00b7 cooks 4% faster a level`,
+      fmt(stationSpdCost(st.spdLvl)), S.heart >= stationSpdCost(st.spdLvl), 'icon_heart', `spd:${id}`, stationSpdCost(st.spdLvl)));
+    cards.push(ucard(`${d.name}: a careful hand`, d.dishSprite, `Lv.${st.premLvl} \u00b7 +1.5% premium a level`,
+      fmt(stationPremCost(st.premLvl)), S.heart >= stationPremCost(st.premLvl), 'icon_heart', `prem:${id}`, stationPremCost(st.premLvl)));
   }
   body.innerHTML = `<div class="hint">Hearts come from blossoms and napping bees. Tap them in the park.</div>
     <div class="grid">${cards.join('')}</div>`;
@@ -487,22 +572,21 @@ function renderRoyal() {
     const lv = S.royal[u.id] || 0;
     const maxed = u.max && lv >= u.max;
     const cost = royalCost(u, lv);
-    const label = u.id === 'newbee' ? u.name
-      : u.id === 'offline' ? `${u.name} +30m`
-      : `${u.name} ${pct(u.step)}`;
-    return ucard(label, u.art, maxed ? 'MAX' : `Lv.${lv}`, maxed ? 'max' : fmt(cost),
-      !maxed && S.gem >= cost, 'icon_gem', `royal:${u.id}`);
+    const step = u.id === 'newbee' ? '' : u.id === 'offline' ? ' \u00b7 +30m a level' : ` \u00b7 ${pct(u.step)} a level`;
+    return ucard(u.name, u.art, (maxed ? 'MAX' : `Lv.${lv}`) + ' \u00b7 ' + u.blurb + step,
+      maxed ? 'max' : fmt(cost),
+      !maxed && S.gem >= cost, 'icon_gem', `royal:${u.id}`, maxed ? 0 : cost);
   });
   body.innerHTML = `<div class="hint">Gems come from research and the shop.</div>
     <div class="grid">${cards.join('')}</div>`;
   wireUpgrades(renderRoyal);
 }
 
-function ucard(name, artName, lvText, costText, afford, cur, action) {
+function ucard(name, artName, lvText, costText, afford, cur, action, cost) {
   return `<div class="ucard"><h3>${name}</h3>
     <div class="art" style="${art(artName)}"></div>
     <small>${lvText}</small>
-    <button class="buy" data-act="${action}" ${afford ? '' : 'disabled'}>${icon(cur)}${costText}</button>
+    <button class="buy" data-act="${action}"${costAttr(cur, cost)} ${afford ? '' : 'disabled'}>${icon(cur)}${costText}</button>
   </div>`;
 }
 
@@ -554,6 +638,40 @@ function renderBees() {
 
 // Inline rename. A floating field over the panel, because prompt() does nothing
 // inside a published artifact.
+// A small naming box. `o` says what's being named and how to read and write it.
+function askFor(o, after) {
+  const box = document.createElement('div');
+  box.className = 'namebox';
+  box.innerHTML = `<div class="namecard">
+    <h3>${o.head}</h3>
+    <input id="namein" maxlength="${o.max || 14}" value="${String(o.value).replace(/"/g, '&quot;')}">
+    ${o.note ? `<p class="namenote">${o.note}</p>` : ''}
+    <div class="namerow">
+      <button class="buy ghost" id="namedef">Reset</button>
+      <button class="buy" id="nameok">Save</button>
+    </div></div>`;
+  document.getElementById('app').appendChild(box);
+  const inp = box.querySelector('#namein');
+  inp.focus(); inp.select();
+  const close = () => box.remove();
+  const done = v => { o.set(v); close(); save(); after(); };
+  const commit = () => {
+    const v = inp.value.trim().slice(0, o.max || 14);
+    done(!v || v === o.value ? null : v);
+  };
+  box.onclick = e => { if (e.target === box) close(); };
+  box.querySelector('#nameok').onclick = commit;
+  box.querySelector('#namedef').onclick = () => done(null);
+  inp.onkeydown = e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') close(); };
+}
+
+// Name the whole hive: it's what the county ranking calls you.
+function askHiveName(after) {
+  askFor({ head: 'Name your hive', value: hiveName() === 'Your hive' ? '' : hiveName(), max: 22,
+    note: 'The other hives in the county will know you by it.',
+    set: v => { S.hiveName = v; } }, after);
+}
+
 function askName(bee, after) {
   const def = beeDef(bee.rid);
   const box = document.createElement('div');
@@ -605,7 +723,7 @@ function renderRoster(head) {
           bee ? ' <button class="rename" id="rename">rename</button>' : ''}</h3>
         <small>${RARITY[def.stars].name} \u00b7 ${ELEMENTS[def.el].name}${
           bee && bee.learned.length ? ' + ' + bee.learned.map(e => ELEMENTS[e].name).join(', ') : ''}</small></div>
-      ${bee ? `<button class="buy" id="promote" ${canPromote && S.jelly >= cost ? '' : 'disabled'}>
+      ${bee ? `<button class="buy" id="promote"${canPromote ? costAttr('icon_jelly', cost) : ''} ${canPromote && S.jelly >= cost ? '' : 'disabled'}>
         ${canPromote ? icon('icon_jelly') + fmt(cost) : 'Max'}</button>` : icon('icon_lock')}</div>
       <p class="tale">${def.line}</p>
       <div class="card"><div class="meta"><h3>${statLabelFull(def.stat)}</h3>
@@ -707,7 +825,7 @@ function renderOutfit(head = '') {
     const actions = [];
     if (!lv) {
       const short = price - S.gem;
-      actions.push(`<button class="buy big" id="fit-act" data-act="buy" ${short > 0 ? 'disabled' : ''}>
+      actions.push(`<button class="buy big" id="fit-act" data-act="buy"${costAttr('icon_gem', price)} ${short > 0 ? 'disabled' : ''}>
         ${icon('icon_gem')}Buy for ${price} gems</button>`);
       if (short > 0) actions.push(`<p class="dwhy">You have <b>${fmt(S.gem)} gems</b>, so you need <b>${fmt(short)} more</b>.
         Gems come from research (+2 for each one), Parcel Desk orders and the Shop.</p>`);
@@ -715,7 +833,7 @@ function renderOutfit(head = '') {
       actions.push(`<button class="buy big ${on ? 'ghost' : ''}" id="fit-act" data-act="${on ? 'off' : 'wear'}">
         ${on ? 'Take it off' : `Put it on ${beeName(bee)}`}</button>`);
       const short = up - S.pollen;
-      actions.push(`<button class="buy" id="fit-up" ${short > 0 ? 'disabled' : ''}>${icon('icon_pollen')}Level up \u00b7 ${fmt(up)} pollen</button>`);
+      actions.push(`<button class="buy" id="fit-up"${costAttr('icon_pollen', up)} ${short > 0 ? 'disabled' : ''}>${icon('icon_pollen')}Level up \u00b7 ${fmt(up)} pollen</button>`);
       actions.push(`<p class="dwhy">${short > 0 ? `You have <b>${fmt(S.pollen)} pollen</b>, ${fmt(short)} short. ` : ''}
         Next level: ${fitEffect(sel, lv + 1).toLowerCase()}. Pollen drops when a premium dish sells.</p>`);
     }
@@ -951,6 +1069,7 @@ function renderKitchen() {
       ${st.premStock ? st.premStock + ' premium waiting.' : ''}</small></div></div>
     ${upgradeRow(id)}`;
 
+  wireCrew(renderKitchen);
   const sb = body.querySelector('#sell-here');
   if (sb && n) sb.onclick = () => { sellStation(id); save(); syncHUD(); syncRail(); renderKitchen(); };
   wireUpgrade(id, renderKitchen);
@@ -1001,11 +1120,11 @@ function renderHatchery() {
     <div class="grid">
       <div class="ucard"><h3>One egg</h3>
         <div class="art" style="${art('icon_egg')}"></div><small>&nbsp;</small>
-        <button class="buy" id="pull1" ${S.gem >= SUMMON.single ? '' : 'disabled'}>
+        <button class="buy" id="pull1"${costAttr('icon_gem', SUMMON.single)} ${S.gem >= SUMMON.single ? '' : 'disabled'}>
           ${icon('icon_gem')}${SUMMON.single}</button></div>
       <div class="ucard"><h3>Ten eggs</h3>
         <div class="art" style="${art('bld_hatchery')}"></div><small>saves ${SUMMON.single * 10 - SUMMON.ten}</small>
-        <button class="buy" id="pull10" ${S.gem >= SUMMON.ten ? '' : 'disabled'}>
+        <button class="buy" id="pull10"${costAttr('icon_gem', SUMMON.ten)} ${S.gem >= SUMMON.ten ? '' : 'disabled'}>
           ${icon('icon_gem')}${SUMMON.ten}</button></div>
     </div>
     ${results}
@@ -1133,9 +1252,13 @@ function renderSettings() {
     <div class="card"><div class="meta"><h3>Hive Rank ${fmt(hivePower())}</h3>
       <small>${S.bees.length} bees \u00b7 ${techCount()} researched \u00b7
       beeswax ${fmt(S.wax)} (+${waxPerSec().toFixed(2)}/s)</small></div></div>
+    <div class="card"><div class="meta"><h3>Hive name</h3>
+      <small>${hiveName()}</small></div>
+      <button class="buy" id="do-hivename">Rename</button></div>
     <div class="card"><div class="meta"><h3>Start over</h3>
       <small>Wipes this park. There is no undo.</small></div>
       <button class="buy danger" id="do-reset">Reset</button></div>`;
+  body.querySelector('#do-hivename').onclick = () => askHiveName(() => { syncHUD(); renderSettings(); });
   const r = body.querySelector('#do-reset');
   let armed = false;
   r.onclick = () => {
@@ -1164,12 +1287,13 @@ function renderBuild() {
     }
     const cost = buildCost(kind, type);
     return `<div class="ucard"><h3>${name}${n ? ' \u00b7 have ' + n : ''}</h3>${pic}<small>${sub}</small>
-      <button class="buy" data-build="${kind}:${type}" ${S.coin >= cost ? '' : 'disabled'}>
+      <button class="buy" data-build="${kind}:${type}"${costAttr('icon_coin', cost)} ${S.coin >= cost ? '' : 'disabled'}>
         ${cost ? icon('icon_coin') + fmt(cost) : 'Free'}</button></div>`;
   };
   const section = (head, cards) => `<div class="hint">${head}</div><div class="grid">${cards.join('')}</div>`;
-  body.innerHTML = `<div class="hint">Pick something, then drag it where you want it. Kitchens
-      need bees to keep them fed: a second grill with no extra bees just splits the nectar.</div>` +
+  body.innerHTML = `<div class="hint">Pick something, then tap where it goes. To move what's already
+      down, press and hold it on the map. Kitchens need bees to keep them fed: a second grill with no
+      extra bees just splits the nectar.</div>` +
     section('Kitchens', STATIONS.map(d => card('station', d.id, d.name, d.sprite, d.dish + ' \u00b7 3\u00d73'))) +
     section('Blossoms', Object.keys(ELEMENTS).map(el =>
       card('blossom', el, ELEMENTS[el].name + ' Blossom', 'blossom_' + el, 'nectar \u00b7 1\u00d71'))) +
@@ -1211,7 +1335,7 @@ function renderLand() {
       <div class="meta"><h3>A 5\u00d75 lot</h3>
         <small>Room for a couple of kitchens and some blossoms, or a bee hotel and a few decorations.
         You own ${S.land.length}.</small></div>
-      <button class="buy" id="buy-lot" ${S.coin >= cost ? '' : 'disabled'}>${icon('icon_coin')}${fmt(cost)}</button></div>
+      <button class="buy" id="buy-lot"${costAttr('icon_coin', cost)} ${S.coin >= cost ? '' : 'disabled'}>${icon('icon_coin')}${fmt(cost)}</button></div>
     <div class="hint">Land only opens next to land you already have. Each lot costs more than the last.</div>`;
   const b = body.querySelector('#buy-lot');
   if (b) b.onclick = () => {
@@ -1287,6 +1411,7 @@ function syncSheetMove() {
 }
 function openPanel(name) {
   tab = name;
+  $('#btn-build').classList.remove('on');
   sheet.classList.remove('hidden', 'wide');
   nav.querySelectorAll('button').forEach(x => x.classList.remove('on'));
   RENDER[name]();
@@ -1384,7 +1509,7 @@ function syncEdit() {
   bar.classList.toggle('hidden', !E.on);
   if (!E.on) return;
   const holding = !!(E.key || E.fresh);
-  bar.querySelector('.eb-msg').textContent = !holding ? 'Tap something to move it'
+  bar.querySelector('.eb-msg').textContent = !holding ? 'Tap a building to move it'
     : !E.ok ? "Doesn't fit there"
     : E.fresh ? `Tap where it goes \u00b7 ${E.fresh.cost ? fmt(E.fresh.cost) + ' coins' : 'free'}`
     : 'Tap where it goes, or drag it';
@@ -1401,7 +1526,7 @@ function standings() {
   const hours = Math.max(0, (Date.now() - (S.rankStart || Date.now())) / 3600e3);
   const grow = Math.min(2, 1 + hours * 0.01);
   const rows = RIVALS.map(r => ({ name: r.name, score: Math.round(r.base * grow) }));
-  rows.push({ name: 'Your hive', score: hivePower(), me: true });
+  rows.push({ name: hiveName(), score: hivePower(), me: true });
   rows.sort((a, b) => b.score - a.score || (a.me ? -1 : 1));
   rows.forEach((r, i) => { r.pos = i + 1; });
   return rows;
@@ -1424,9 +1549,12 @@ function renderRanking() {
   const above = rows[me.pos - 2];
   body.innerHTML = `<div class="rk-head"><i class="ic" style="${art('fx_crest')}"></i>
       <div><b>#${me.pos} of ${rows.length}</b><small>Hive Rank ${fmt(me.score)}${above ? ` \u00b7 ${fmt(above.score - me.score + 1)} more to pass ${above.name}` : ' \u00b7 top of the county'}</small></div></div>
+    <div class="rk-name-row"><span>Your hive is called <b>${hiveName()}</b></span>
+      <button class="buy ghost" id="rk-rename">Rename</button></div>
     <div class="rk-list">${list}</div>
     <div class="hint">Hive Rank counts your bees (stars \u00d7 level), building levels, bee hotels and research.
       The other hives keep growing, slowly, whether you're watching or not.</div>`;
+  body.querySelector('#rk-rename').onclick = () => askHiveName(() => { syncHUD(); renderRanking(); });
 }
 
 const RENDER = { park: renderPark, ranking: renderRanking, lab: renderLab, royal: renderRoyal, bees: renderBees,
@@ -1442,6 +1570,7 @@ export function openTab(name) {
   sheet.classList.remove('hidden');
   sheet.classList.toggle('wide', name === 'park');
   nav.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  $('#btn-build').classList.toggle('on', name === 'build');
   RENDER[name]();
   syncSheetMove();
 }
@@ -1454,6 +1583,7 @@ export function closeSheet() {
   tab = null;
   sheet.classList.add('hidden');
   nav.querySelectorAll('button').forEach(b => b.classList.remove('on'));
+  $('#btn-build').classList.remove('on');
 }
 
 export function refreshOpenTab() { if (tab) RENDER[tab](); }
@@ -1516,10 +1646,10 @@ function skillTip(el) {
 export function initUI() {
   nav.querySelectorAll('button').forEach(b => b.onclick = () => openTab(b.dataset.tab));
   $('#boost').onclick = () => {
-    if (stats.boostActive) return toast('Boost already running');
+    if (stats.boostActive) return toast('The sun is already out');
     S.boostAmt = 2;
     S.boostUntil = Date.now() + BOOST_SECONDS * 1000;
-    toast('Boost on for ' + clock(BOOST_SECONDS));
+    toast('A sunny spell, ' + clock(BOOST_SECONDS) + ' of it');
     save(); syncHUD();
   };
   $('#bag').onclick = () => { const n = collectBag(); if (n) toast('Collected ' + fmt(n)); save(); syncHUD(); };
@@ -1527,7 +1657,6 @@ export function initUI() {
   $('#btn-settings').onclick = () => openTab('settings');
   $('#rank-badge').onclick = () => openTab('ranking');
   $('#btn-build').onclick = () => { endMove(); openTab('build'); };
-  $('#btn-move').onclick = startMove;
   $('#sheet-move').onclick = () => { const k = sheetKey(); if (k) pickUp(k, false); };
   $('#editbar .eb-ok').onclick = endMove;
   $('#editbar .eb-no').onclick = cancelHold;

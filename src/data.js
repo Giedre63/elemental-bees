@@ -18,8 +18,8 @@ export const ELEMENTS = {
 export const ELEMENT_IDS = Object.keys(ELEMENTS);
 
 // --- kitchens -------------------------------------------------------------
-// Each tier is a big jump in dish value, the way the original's food stations
-// are. Dual-element kitchens are the elemental twist: they need two nectars,
+// Each tier is a big jump in dish value, the way idle-game production tiers
+// generally are. Dual-element kitchens are the elemental twist: they need two nectars,
 // and pay far more for it.
 export const STATIONS = [
   { id: 'ember_grill', crew: { ember: 1 },   name: 'Ember Grill',   dish: 'Honey Skewer',
@@ -264,7 +264,6 @@ export const STORIES = {
 };
 
 // --- the park track -------------------------------------------------------
-// A flat, linear purchase list, exactly like Honey Bee Park's Park tab.
 const P = (title, kind, payload) => ({ title, kind, payload });
 
 export const PARK_SCRIPT = [
@@ -317,7 +316,7 @@ export const PARK_SCRIPT = [
 ];
 
 // Cost curve, but capped at roughly 7 minutes of your current income so the
-// track never turns into the days-per-level wall the original hits around 34.
+// track never turns into the days-per-level wall this genre tends to hit.
 export function parkCost(index, incomePerSec) {
   if (index === 0) return 0;
   const curve = 45 * Math.pow(1.9, index);
@@ -326,11 +325,12 @@ export function parkCost(index, incomePerSec) {
 }
 
 // --- lab (hearts) ---------------------------------------------------------
+// Every upgrade says what changes, in the park's own words.
 export const GLOBAL_LAB = [
-  { id: 'carry',  name: 'Nectar Carrying Capacity', art: 'bee_ember',    step: 0.20, base: 20,  curve: 1.26 },
-  { id: 'speed',  name: 'Bee Flight Speed',         art: 'bee_gale',     step: 0.06, base: 12,  curve: 1.22 },
-  { id: 'bloom',  name: 'Blossom Regrowth',         art: 'blossom_tide', step: 0.08, base: 15,  curve: 1.22 },
-  { id: 'stam',   name: 'Bee Stamina',              art: 'bld_hotel',       step: 0.12, base: 18,  curve: 1.24 },
+  { id: 'carry',  name: 'Stronger backs',   blurb: 'Every bee carries more nectar a trip', art: 'bee_ember',    step: 0.20, base: 20,  curve: 1.26 },
+  { id: 'speed',  name: 'Quicker wings',    blurb: 'Every bee flies faster',               art: 'bee_gale',     step: 0.06, base: 12,  curve: 1.22 },
+  { id: 'bloom',  name: 'Greener lawn',     blurb: 'Blossoms come back sooner',            art: 'blossom_tide', step: 0.08, base: 15,  curve: 1.22 },
+  { id: 'stam',   name: 'Longer days',      blurb: 'Bees tire more slowly',                art: 'bld_hotel',    step: 0.12, base: 18,  curve: 1.24 },
 ];
 export const labCost = (u, lvl) => Math.ceil(u.base * Math.pow(u.curve, lvl));
 export const stationSpdCost = lvl => Math.ceil(10 * Math.pow(1.2, lvl));
@@ -338,13 +338,13 @@ export const stationPremCost = lvl => Math.ceil(15 * Math.pow(1.24, lvl));
 
 // --- royal lab (gems) -----------------------------------------------------
 export const ROYAL_LAB = [
-  { id: 'newbee', name: 'Bring a New Bee',                     art: 'bee_loam',     cost: 60,  curve: 1.5, max: 12 },
-  { id: 'heartc', name: 'Flower Heart Chance',                 art: 'icon_heart',   cost: 80,  curve: 1.3, step: 0.04 },
-  { id: 'boost',  name: 'Boost Efficiency',                    art: 'prop_watch',   cost: 40,  curve: 1.3, step: 0.2 },
-  { id: 'profit', name: 'All Products Profit',                 art: 'icon_coin',    cost: 90,  curve: 1.3, step: 0.20 },
-  { id: 'prem',   name: 'All Products Premium Chance',         art: 'icon_jelly',   cost: 100, curve: 1.3, step: 0.01 },
-  { id: 'attune', name: 'Attunement Bonus',                    art: 'nectar_ember', cost: 120, curve: 1.35, step: 0.15 },
-  { id: 'offline',name: 'Offline Honey Time',                  art: 'prop_watch',   cost: 70,  curve: 1.4, step: 1800, max: 8 },
+  { id: 'newbee', name: 'Call another bee',  blurb: 'One more bee answers',                  art: 'bee_loam',     cost: 60,  curve: 1.5, max: 12 },
+  { id: 'heartc', name: 'Fonder blossoms',   blurb: 'Hearts turn up more often',             art: 'icon_heart',   cost: 80,  curve: 1.3, step: 0.04 },
+  { id: 'boost',  name: 'A longer summer',   blurb: 'The free boost counts for more',        art: 'prop_watch',   cost: 40,  curve: 1.3, step: 0.2 },
+  { id: 'profit', name: 'Sweeter trade',     blurb: 'Every dish sells for more',             art: 'icon_coin',    cost: 90,  curve: 1.3, step: 0.20 },
+  { id: 'prem',   name: 'A finer hand',      blurb: 'More dishes come out premium',          art: 'icon_jelly',   cost: 100, curve: 1.3, step: 0.01 },
+  { id: 'attune', name: 'Deeper attunement', blurb: 'Attuned deliveries pay better',         art: 'nectar_ember', cost: 120, curve: 1.35, step: 0.15 },
+  { id: 'offline',name: 'Nights away',       blurb: 'The park keeps earning for longer',     art: 'prop_watch',   cost: 70,  curve: 1.4, step: 1800, max: 8 },
 ];
 export const royalCost = (u, lvl) => Math.ceil(u.cost * Math.pow(u.curve, lvl));
 
@@ -377,7 +377,7 @@ export const outfitUpCost = (o, lvl) => Math.ceil(o.stars * 4 * Math.pow(1.35, l
 // Bees count when they fly through it. stat: the key the bonus feeds.
 export const DECOR_RANGE = 2;
 export const DECOR = {
-  prop_sign:     { name: 'Honey Signpost', affects: 'kitchen', stat: 'profit', amt: 0.25, effect: 'Kitchens nearby earn 25% more' },
+  prop_sign:     { name: 'Honey Signpost', affects: 'kitchen', stat: 'profit', amt: 0.25, effect: 'Kitchens nearby sell for 25% more' },
   prop_fountain: { name: 'Little Fountain',affects: 'blossom', stat: 'bloom',  amt: 0.30, effect: 'Blossoms nearby regrow 30% faster' },
   prop_lantern:  { name: 'Park Lantern',   affects: 'blossom', stat: 'heart',  amt: 0.20, effect: 'Blossoms nearby drop hearts 20% more often' },
   prop_picnic:   { name: 'Picnic Basket',  affects: 'hotel',   stat: 'rest',   amt: 0.40, effect: 'Bees in hotels nearby sleep it off 40% faster' },

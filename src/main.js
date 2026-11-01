@@ -8,7 +8,7 @@ import { resize, draw, toWorld, panBy, lookAt, zoomAt } from './render.js';
 import { tuckIn, tick, pops, collectPop, offlineEarnings, sellStation, collectCoin, stationAttune, rollOrder } from './sim.js';
 import {
   setBeeView, hudTip, initUI, syncHUD, wireHudTips, syncRail, syncDock, openTab, closeSheet,
-  toast, showTip, refreshOpenTab, openThing, openLand, pickUp, ghostTo, startMove, nextStarter,
+  toast, showTip, refreshOpenTab, syncBuys, openThing, openLand, pickUp, ghostTo, startMove, nextStarter,
   dropHeld, cancelHold,
 } from './ui.js';
 import {
@@ -293,7 +293,7 @@ async function boot() {
     tick(dt);
     draw(now / 1000);
     ui += dt;
-    if (ui > 0.2) { ui = 0; syncHUD(); syncRail(); syncDock(); }
+    if (ui > 0.2) { ui = 0; syncHUD(); syncRail(); syncDock(); syncBuys(); }
     acc += dt;
     if (acc > 10) { acc = 0; save(); refreshOpenTab(); }
     if (DEBUG) {
@@ -311,6 +311,9 @@ async function boot() {
 
   if (Q.has('dress')) setBeeView('dress');
   if (Q.has('tip')) setInterval(() => hudTip(Q.get('tip')), 1500);
+  if (Q.has('meas')) setTimeout(() => { const el = document.createElement('script'); el.src = 'meas.js'; document.body.appendChild(el); }, 600);
+  if (Q.has('nocrew')) S.bees = S.bees.filter(b => b.el !== (Q.get('nocrew') || 'loam'));
+  if (Q.has('hivename')) setTimeout(() => { openTab('ranking'); document.getElementById('rk-rename')?.click(); }, 300);
   if (Q.has('rename')) setTimeout(() => document.querySelector('#rename-fit,#rename')?.click(), 200);
   if (Q.has('tab')) openTab(Q.get('tab'));
   if (Q.has('thing')) setTimeout(() => openThing(Q.get('thing')), 200);

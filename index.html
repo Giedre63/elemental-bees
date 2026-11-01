@@ -12,7 +12,10 @@
 
   <button id="rank-badge" title="Hive ranking"><i class="ic" data-ic="fx_crest"></i>
     <span><b id="rank-pos">#1</b><small id="rank-pts">Hive Rank 0</small></span></button>
-  <button id="btn-settings" class="floaty" title="Settings" aria-label="Settings"><i class="ic" data-ic="nav_gear"></i></button>
+  <div id="corner">
+    <button id="btn-settings" title="Settings" aria-label="Settings"><i class="ic" data-ic="nav_gear"></i></button>
+    <button id="btn-build" title="Build"><i class="nav-ic" data-ic="icon_build"></i><em>Build</em></button>
+  </div>
 
   <div id="hud">
     <div class="hud-row">
@@ -29,9 +32,9 @@
 
   <div id="rail"></div>
 
-  <button id="boost" class="floaty">
+  <button id="boost" title="Sunny spell">
     <span class="boost-x">x1.0</span>
-    <span class="boost-sub">tap to charge</span>
+    <span class="boost-sub">sunny spell</span>
   </button>
 
   <div id="editbar" class="hidden">
@@ -60,8 +63,6 @@
     <button data-tab="bees"  title="Bees"><i class="nav-ic" data-ic="nav_bees"></i><em>Bees</em></button>
     <button data-tab="shop"  title="Shop"><i class="nav-ic" data-ic="nav_shop"></i><em>Shop</em></button>
     <button data-tab="park"  title="Research"><i class="nav-ic" data-ic="nav_park"></i><em>Research</em></button>
-    <button id="btn-move" title="Move"><i class="nav-ic" data-ic="nav_pin"></i><em>Move</em></button>
-    <button id="btn-build" class="big" title="Build"><i class="nav-ic" data-ic="icon_build"></i><em>Build</em></button>
   </nav>
 
   <div id="toasts"></div>

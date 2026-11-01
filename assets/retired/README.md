@@ -21,3 +21,9 @@ pasted at a fixed spot. That stopped the AI animator's hat from melting away
 like steam, but froze the head while the body bobbed. Replaced by frames that
 take the frame-0 head and hat and move them by each frame's measured head
 offset (up to 1px), so they bob together.
+
+## icons-thin/ (retired 2026-11-01)
+
+The first beeswax, amber gem and waggle icons. Each drew a thin object inside a
+lot of empty space, so at HUD size they read as faint outlines. Replaced with
+chunky versions that fill their frame.

@@ -1,9 +1,11 @@
 # Elemental Bees — design
 
-A base game built on the shape of **Honey Bee Park** (Wondersquad, 2023), re-themed
-to elementals + cooking.
+A cosy bee city builder. The loop takes its shape from the idle-management
+genre — **Honey Bee Park** (Wondersquad, 2023) is the clearest example of it,
+and Part 1 is our reading of how that kind of game works. Everything in Part 2
+is this game's own: its art, its buildings, its words and its systems.
 
-## Part 1 — what Honey Bee Park actually is
+## Part 1 — how this kind of game works
 
 Reconstructed from the store listing, a hands-on review, and five screenshots.
 
@@ -43,14 +45,17 @@ flowers are manual. That is what keeps you opening the app.
   star rarity and a level. Not cosmetic: they buff the bee.
 - **Shop** — decor and boosts.
 
-### Readability details worth stealing
+### Readability details that earn their place
 
-- A **vertical fill meter** beside every station. Mostly empty → you need more
-  bees. Mostly full → you need more station speed. One glance, one decision.
+- Some signal beside every station for *starved or backed up*. Mostly empty →
+  you need more bees. Mostly full → you need more station speed. One glance,
+  one decision. Ours is a comb of four cells that fills with the nectar the
+  kitchen burns (`combGauge` in `render.js`).
 - Numbers use `K M B T` then `aa ab ac…`.
 - Tapping a prop shows a plain-language tooltip: *"Promotion — Increases All
   Products Profit by 100%."*
-- A free `x2.1` boost button pinned bottom-left, a coin sack bottom-right.
+- A free recurring boost within reach. Ours is the **sunny spell**, a round sun
+  badge bottom-left.
 - Coins physically drop on the grass and can be tapped.
 
 ### The flaw to fix
@@ -246,7 +251,7 @@ couple of minutes of play away.
 
 ### Everything else kept
 
-Manual selling with 50% auto-sell overflow, tappable hearts, the fill meter,
+Manual selling with 50% auto-sell overflow, tappable hearts, the comb gauge,
 the five tabs, the star-rarity outfits, `K M B T aa ab`, offline catch-up at
 45% for up to an hour (extendable in the Royal Lab).
 
@@ -316,6 +321,14 @@ the art), flies to its mouth, shrinks in, and is not drawn while asleep; z's
 rise from the tube. She regains `HOTEL.regen × stamina stat` per second, so
 sleep length scales with how tired she was: about 20s from the threshold.
 No free tube anywhere, and she keeps working.
+
+### Our own words
+
+Upgrade labels are written in the park's voice rather than the genre's stock
+phrasing: *Stronger backs*, *Quicker wings*, *Sweeter trade*, *A finer hand*,
+*Nights away*. Per-kitchen upgrades read *a hotter fire* and *a careful hand*.
+Flavour text (building stories, research lines) is written to be read, not
+skimmed.
 
 ### Clothes on the body
 

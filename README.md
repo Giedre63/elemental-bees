@@ -1,7 +1,7 @@
 # Elemental Bees
 
 A cosy idle park where elemental bees cook. Built as a base game on the
-mechanics of the discontinued **Honey Bee Park**, re-themed to elementals +
+mechanics of cosy idle-management games, re-themed to elementals +
 cooking. All art is pixel art generated through PixelLab.
 
 ```sh
@@ -56,7 +56,8 @@ index.html, `src/` and `assets/` beside it, retired art dropped).
 - **Research** (the hammer tab) is a bubble tree in five chapters: 38 nodes,
   each unlocking exactly one thing (a kitchen, blossom, building, decoration,
   feature or bee), joined by arrows that turn green as you go.
-- **Waggles** (the figure-eight chip at the top) trickle in, one every 90
+- **Hive Rank badge** top left opens the county ranking; you can name your hive there.
+- **Waggles** (the dance medallion at the top) trickle in, one every 90
   seconds up to 10, even while you're away. Pour them into a research bubble,
   then pay coins to finish it. + on the chip buys one for 4 gems.
 - **Build** lists every building, decoration, blossom and kitchen: locked ones

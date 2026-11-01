@@ -18,6 +18,7 @@ export function freshState() {
     tech: {},                // research node id -> true
     kp: WAGGLE.start,        // waggles in hand
     techKp: {},              // research node id -> waggles poured in so far
+    hiveName: null,          // what the player calls their hive
     rankStart: Date.now(),   // when the neighbouring hives started growing
     lastPos: 0,              // last ranking position seen, for "you passed"
 
@@ -636,6 +637,7 @@ export function addBee(el) {
   return grantBee(pick ? pick.id : BEE_ROSTER[0].id);
 }
 
+export const hiveName = () => S.hiveName || 'Your hive';
 export const beeName = b => b?.name || beeDef(b?.rid)?.name || 'Bee';
 export const beeStars = b => beeDef(b.rid)?.stars || 1;
 

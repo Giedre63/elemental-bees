@@ -621,3 +621,156 @@ button.rename:hover{color:var(--gold2,#a9731c)}
 .rk-name{flex:1}
 .rk-score{font-weight:bold;font-variant-numeric:tabular-nums}
 .rk-gap{text-align:center;opacity:.5;line-height:.8}
+
+/* the sunny spell: a round sun badge, not a pinned multiplier bar */
+#boost{position:absolute;left:18px;bottom:18px;z-index:19;width:66px;height:66px;border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1.05;
+  cursor:pointer;font-family:inherit;font-weight:bold;color:#5a3b10;padding:0;
+  background:radial-gradient(circle at 50% 38%,#fff3c4,#ffd04a 62%,#e8a317);
+  border:3px solid var(--ink);box-shadow:0 3px 0 #0004}
+#boost::before{content:'';position:absolute;inset:-7px;border-radius:50%;z-index:-1;
+  background:conic-gradient(from 0deg,#f6c53c 0 8%,#0000 8% 12.5%,#f6c53c 12.5% 20.5%,#0000 20.5% 25%,
+    #f6c53c 25% 33%,#0000 33% 37.5%,#f6c53c 37.5% 45.5%,#0000 45.5% 50%,#f6c53c 50% 58%,#0000 58% 62.5%,
+    #f6c53c 62.5% 70.5%,#0000 70.5% 75%,#f6c53c 75% 83%,#0000 83% 87.5%,#f6c53c 87.5% 95.5%,#0000 95.5%)}
+#boost .boost-x{font-size:17px}
+#boost .boost-sub{font-size:8px;opacity:.8;font-weight:normal}
+#boost.live{animation:sunspin 9s linear infinite}
+#boost.live::before{filter:brightness(1.15)}
+@keyframes sunspin{to{transform:rotate(360deg)}}
+#boost.live .boost-x,#boost.live .boost-sub{animation:sunspin 9s linear infinite reverse}
+#bag{left:98px;right:auto;bottom:30px}
+#dock{bottom:100px}
+.namenote{margin:6px 0 0;font-size:10.5px;opacity:.7;text-align:center}
+.rk-name-row{display:flex;align-items:center;gap:10px;justify-content:space-between;
+  background:#fff8e6;border:2px solid #0002;border-radius:10px;padding:6px 10px;font-size:12px}
+.rk-name-row .buy{padding:3px 10px;font-size:11px}
+
+/* research node: tighter name, a line of what you get, a hairline rank bar */
+.bnode .bname{margin-top:4px;width:128px;font-size:10.5px;line-height:1.1}
+.bnode .bsub{display:block;width:128px;text-align:center;font-style:normal;font-size:9px;
+  line-height:1.15;color:#7a6a55;margin-top:1px}
+.bnode.locked .bsub{opacity:.6}
+.bnode.done .bsub{color:#4f7a36}
+.rank-bar.mini{max-width:none;width:96px;gap:1px;font-size:9px}
+.rank-bar.mini .rb-track{height:4px;border-radius:2px}
+.bnode .rank-bar{margin-top:2px;width:96px}
+/* the research tree is a whole screen: let it use the full height, over the menu */
+#sheet.wide{top:8px;bottom:auto;max-height:calc(100% - 16px);z-index:27}
+
+/* ---------- phones ----------
+   Narrow and short screens: fewer, bigger targets, HUD on two rows, panels
+   near full width, and the research tree scrolls both ways. */
+@media (max-width: 760px), (max-height: 520px) {
+  #hud{padding:6px 8px 0}
+  .hud-row{flex-wrap:wrap;justify-content:center;gap:3px}
+  .chip{height:26px;font-size:11px;padding:0 6px 0 2px}
+  .chip .ic{width:18px;height:18px}
+  .kpchip .kpbar{width:34px}
+  #rank-badge{left:6px;top:4px;padding:3px 9px 3px 3px}
+  #rank-badge .ic{width:26px;height:26px}
+  #rank-badge b{font-size:14px}
+  #rank-badge small{font-size:9px;max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  #nav{left:0;right:0;transform:none;bottom:0;border-radius:16px 16px 0 0;padding:4px 2px 4px;
+    justify-content:space-around;border-width:2px 0 0}
+  #nav button,#nav button.big{width:auto;flex:1;max-width:84px}
+  #nav .nav-ic,#nav button.big .nav-ic{width:36px;height:36px}
+  #nav button.on .nav-ic,#nav button.big.on .nav-ic{width:40px;height:40px}
+  #nav button em{font-size:9px}
+
+  #sheet{left:4px;right:4px;width:auto;transform:none;top:62px;max-height:calc(100% - 62px - 78px)}
+  #sheet.wide{left:4px;right:4px;width:auto;transform:none;top:52px;max-height:calc(100% - 60px)}
+  #app:not([data-ui]){--panel-border:34px}
+  #sheet.framed .sheet-body{padding:2px 2px 4px}
+  .sheet-head h2{font-size:15px}
+  #sheet .frame-btn{width:34px;height:34px}
+  #sheet .frame-btn svg{width:17px;height:17px}
+  #sheet-close{right:calc(-1 * var(--panel-border) + 36px)}
+  #sheet-move{right:calc(-1 * var(--panel-border) + 74px)}
+
+  #sheet .grid{grid-template-columns:repeat(2,1fr)}
+  .dress{grid-template-columns:1fr}
+  .dgrid{grid-template-columns:repeat(4,1fr)}
+  .facts span{flex:0 0 70px}
+
+  #rail{top:auto;bottom:86px;left:6px;right:6px;flex-direction:row;justify-content:flex-start;
+    overflow-x:auto;gap:5px;pointer-events:auto}
+  .stack{width:50px;flex:0 0 50px}
+  .stack i{width:28px;height:28px}
+
+  #dock{bottom:146px;left:6px;max-width:none;gap:4px}
+  .dock-label{font-size:9px}
+  .slot-skill{width:38px;height:38px}
+  #boost{width:56px;height:56px;left:8px;bottom:86px}
+  #boost .boost-x{font-size:14px}
+  #boost .boost-sub{font-size:7px}
+  #bag{left:72px;bottom:94px}
+  #btn-settings{right:8px;bottom:86px;width:40px;height:40px}
+  #editbar{bottom:88px;min-width:0;left:4px;right:4px;transform:none}
+
+  #techtip{width:min(260px,calc(100vw - 24px))}
+  .chaps{flex-wrap:wrap;gap:4px}
+  .chap{padding:2px 7px 2px 3px}
+  .chap em{font-size:10px}
+}
+
+/* very narrow: drop the chapter words, keep the numerals */
+@media (max-width: 460px) {
+  .chap em{display:none}
+  .chap{padding:2px 4px}
+  #nav button em{display:none}
+  #nav button,#nav button.big{max-width:none}
+}
+
+/* Build sits on its own, bottom right, with Settings above it in the same
+   wood-and-brass style. The tab menu keeps to the left. */
+#corner{position:absolute;right:10px;bottom:10px;z-index:26;display:flex;flex-direction:column;
+  align-items:center;gap:8px}
+#corner button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  cursor:pointer;font-family:inherit;color:var(--cream);padding:0;
+  background:linear-gradient(#5a4232,#3a2820);border:3px solid var(--ink);
+  box-shadow:inset 0 0 0 2px #c9963e,0 3px 0 #0005}
+#corner button:active{transform:translateY(2px);box-shadow:inset 0 0 0 2px #c9963e,0 1px 0 #0005}
+#btn-settings{position:static;width:46px;height:46px;border-radius:50%}
+#btn-settings .ic{width:24px;height:24px}
+#btn-build{width:84px;height:84px;border-radius:20px}
+#btn-build .nav-ic{width:50px;height:50px;background:center/contain no-repeat;image-rendering:pixelated;
+  filter:drop-shadow(1.5px 0 0 var(--ink)) drop-shadow(-1.5px 0 0 var(--ink))
+         drop-shadow(0 1.5px 0 var(--ink)) drop-shadow(0 -1.5px 0 var(--ink))}
+#btn-build em{font-style:normal;font-size:11px;font-weight:bold;letter-spacing:.3px;
+  text-shadow:1px 1px 0 var(--ink),-1px 1px 0 var(--ink),1px -1px 0 var(--ink),-1px -1px 0 var(--ink)}
+#btn-build.on{box-shadow:inset 0 0 0 2px var(--gold),0 0 10px var(--gold),0 3px 0 #0005}
+#btn-build.on em{color:var(--gold)}
+#nav{left:10px;right:auto;transform:none}
+#app.editing #corner{opacity:.35;pointer-events:none}
+#app.showcase #corner{display:none}
+
+@media (max-width: 760px), (max-height: 520px) {
+  #corner{right:6px;bottom:72px;gap:6px}
+  #btn-settings{width:40px;height:40px}
+  #btn-build{width:68px;height:68px;border-radius:16px}
+  #btn-build .nav-ic{width:40px;height:40px}
+  #btn-build em{font-size:10px}
+  #nav{left:0;right:0}
+  #btn-settings{right:auto;bottom:auto}
+}
+/* bottom row, left to right: tabs, the sunny spell, the hauler's bag.
+   Bee skills sit on the shelf above them. */
+#boost{left:auto;right:auto;bottom:14px;margin-left:0}
+#nav{bottom:10px}
+#dock{bottom:112px;left:12px}
+#boost{position:absolute;left:402px;bottom:18px}
+#bag{left:478px;bottom:30px}
+@media (max-width: 1100px){
+  #boost{left:auto;right:120px;bottom:18px}
+  #bag{left:auto;right:196px;bottom:30px}
+}
+@media (max-width: 760px), (max-height: 520px){
+  #boost{left:8px;right:auto;bottom:150px}
+  #bag{left:72px;right:auto;bottom:158px}
+  #dock{bottom:210px}
+}
+/* the node you were sent to */
+.bnode.hunted .bub{animation:hunted 1.1s ease-out 3}
+@keyframes hunted{0%,100%{box-shadow:0 3px 0 #0003}50%{box-shadow:0 0 0 8px #ffd96a99,0 3px 0 #0003}}
+.card.locked .art{filter:none;opacity:.9}
