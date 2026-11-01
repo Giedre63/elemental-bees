@@ -47,10 +47,9 @@ flowers are manual. That is what keeps you opening the app.
 
 ### Readability details that earn their place
 
-- Some signal beside every station for *starved or backed up*. Mostly empty →
-  you need more bees. Mostly full → you need more station speed. One glance,
-  one decision. Ours is a comb of four cells that fills with the nectar the
-  kitchen burns (`combGauge` in `render.js`).
+- A **vertical fill meter** beside every station for *starved or backed up*.
+  Mostly empty → you need more bees. Mostly full → you need more station
+  speed. One glance, one decision.
 - Numbers use `K M B T` then `aa ab ac…`.
 - Tapping a prop shows a plain-language tooltip: *"Promotion — Increases All
   Products Profit by 100%."*
@@ -250,7 +249,7 @@ couple of minutes of play away.
 
 ### Everything else kept
 
-Manual selling with 50% auto-sell overflow, tappable hearts, the comb gauge,
+Manual selling with 50% auto-sell overflow, tappable hearts, the fill meter,
 the five tabs, the star-rarity outfits, `K M B T aa ab`, offline catch-up at
 45% for up to an hour (extendable in the Royal Lab).
 

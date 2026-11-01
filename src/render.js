@@ -312,10 +312,20 @@ function drawStation(id, t) {
     ctx.fillStyle = '#2a1d16'; ctx.font = 'bold 10px sans-serif';
     ctx.textAlign = 'center'; ctx.fillText(d.name, x, y - 44);
   }
-  // A little comb of four cells beside the kitchen, filling with the nectar it
-  // burns. Empty comb: the bees can't keep up. Full comb: it's backed up and
-  // wants more speed. One glance, same as reading a larder.
-  combGauge(x + 74, y - 34, d, st);
+  // vertical fill meter: mostly empty means the bees can't keep up, mostly
+  // full means the kitchen wants more speed
+  const need = Object.entries(d.inputs).reduce((a, [, n]) => a + n * 4, 0);
+  const have = Object.values(st.buf).reduce((a, b) => a + b, 0);
+  const f = Math.min(1, have / need);
+  const bx = x + 80, by = y - 92, bh = 78;
+  ctx.fillStyle = '#2a1d16';
+  ctx.fillRect(bx - 5, by - 4, 10, bh + 8);
+  ctx.fillStyle = '#ffd24a';
+  ctx.fillRect(bx - 3, by + bh * (1 - f) - 2, 6, bh * f + 2);
+  ctx.beginPath();
+  ctx.moveTo(bx + 6, by + bh * (1 - f)); ctx.lineTo(bx + 13, by + bh * (1 - f) - 5);
+  ctx.lineTo(bx + 13, by + bh * (1 - f) + 5); ctx.closePath();
+  ctx.fillStyle = '#fff'; ctx.fill();
 
   const gaps = crewMissing(id);
   if (gaps) {
@@ -338,42 +348,6 @@ function drawStation(id, t) {
     ctx.arc(cx, cy, 9, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2);
     ctx.closePath(); ctx.fillStyle = '#ff8a3d'; ctx.fill();
   }
-}
-
-// A column of four hexagonal cells. fill runs bottom-up; the colour is the
-// element the kitchen burns most of.
-function combGauge(x, y, d, st) {
-  const need = Object.entries(d.inputs).reduce((a, [, n]) => a + n * 4, 0);
-  const have = Object.values(st.buf).reduce((a, b) => a + b, 0);
-  const f = Math.min(1, have / need);
-  const el = Object.keys(d.inputs)[0];
-  const tint = ELEMENTS[el] ? ELEMENTS[el].color : '#ffd24a';
-  const R = 10, N = 4, step = R * 1.74;
-  for (let i = 0; i < N; i++) {
-    const cy = y - i * step;
-    // how full this cell is: the comb fills one cell at a time from the bottom
-    const cell = Math.max(0, Math.min(1, f * N - i));
-    hexPath(x, cy, R);
-    ctx.fillStyle = '#f6ecd2'; ctx.fill();
-    if (cell > 0) {
-      ctx.save(); ctx.clip();
-      ctx.fillStyle = tint;
-      ctx.fillRect(x - R, cy + R - 2 * R * cell, R * 2, 2 * R * cell);
-      ctx.restore();
-      hexPath(x, cy, R);
-    }
-    ctx.lineWidth = 2.5; ctx.strokeStyle = '#2a1d16'; ctx.stroke();
-  }
-}
-
-function hexPath(cx, cy, r) {
-  ctx.beginPath();
-  for (let k = 0; k < 6; k++) {
-    const a = Math.PI / 180 * (60 * k - 90);
-    const px = cx + r * Math.cos(a), py = cy + r * Math.sin(a);
-    k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
-  }
-  ctx.closePath();
 }
 
 function drawAcademy(t) {
