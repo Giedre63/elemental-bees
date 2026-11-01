@@ -803,3 +803,13 @@ button.rename:hover{color:var(--gold2,#a9731c)}
   #btn-settings{right:2px;bottom:calc(72px + 76px);width:28px;height:28px}
   #btn-settings .ic{width:17px;height:17px}
 }
+
+/* Everything that floats over the park uses the tab bar's look: flat dark
+   wood, a 2px ink edge, a soft drop. No brass rings. */
+#rank-badge{background:linear-gradient(#2a1d16cc,#1b120ce6);border:2px solid var(--ink);
+  border-radius:18px;box-shadow:0 4px 0 #0005;padding:5px 12px 5px 6px}
+#btn-settings{background:linear-gradient(#2a1d16cc,#1b120ce6);border:2px solid var(--ink);
+  border-radius:12px;box-shadow:0 3px 0 #0005}
+#sheet .frame-btn{background:linear-gradient(#2a1d16cc,#1b120ce6);border:2px solid var(--ink);
+  box-shadow:0 3px 0 #0005}
+#sheet .frame-btn:active{box-shadow:0 1px 0 #0005}
