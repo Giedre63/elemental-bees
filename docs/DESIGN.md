@@ -54,8 +54,7 @@ flowers are manual. That is what keeps you opening the app.
 - Numbers use `K M B T` then `aa ab ac…`.
 - Tapping a prop shows a plain-language tooltip: *"Promotion — Increases All
   Products Profit by 100%."*
-- A free recurring boost within reach. Ours is the **sunny spell**, a round sun
-  badge bottom-left.
+- A free recurring boost within reach, bottom-left.
 - Coins physically drop on the grass and can be tapped.
 
 ### The flaw to fix

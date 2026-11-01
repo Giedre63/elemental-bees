@@ -254,7 +254,7 @@ export function syncHUD() {
   bt.querySelector('.boost-x').textContent = 'x' + stats.boostMul.toFixed(1);
   bt.querySelector('.boost-sub').textContent = live
     ? clock((S.boostUntil - Date.now()) / 1000)
-    : 'sunny spell';
+    : 'free boost';
 
   const bag = $('#bag');
   bag.classList.toggle('hidden', !S.features.autosell || S.bag <= 0);
@@ -1646,10 +1646,10 @@ function skillTip(el) {
 export function initUI() {
   nav.querySelectorAll('button').forEach(b => b.onclick = () => openTab(b.dataset.tab));
   $('#boost').onclick = () => {
-    if (stats.boostActive) return toast('The sun is already out');
+    if (stats.boostActive) return toast('Boost already running');
     S.boostAmt = 2;
     S.boostUntil = Date.now() + BOOST_SECONDS * 1000;
-    toast('A sunny spell, ' + clock(BOOST_SECONDS) + ' of it');
+    toast('Boost on for ' + clock(BOOST_SECONDS));
     save(); syncHUD();
   };
   $('#bag').onclick = () => { const n = collectBag(); if (n) toast('Collected ' + fmt(n)); save(); syncHUD(); };
