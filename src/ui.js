@@ -371,25 +371,59 @@ const bubPos = t => [BT.padX + t.col * BT.colW, BT.padY + t.row * BT.rowH];
 const nodeArt = t => t.bee ? 'bee_' + t.bee : t.feature ? FEATURE_TEXT[t.feature][2]
   : t.unlocks[0] ? unlockArt(t.unlocks[0]) : 'icon_build';
 
+// The inside of one research bubble. Kept separate so pouring waggles can
+// redraw a single node instead of the whole tree, which used to throw the
+// scroll position and close the tooltip under your finger.
+function nodeInner(t, inc, power) {
+  const st = techState(t), gate = techGate(t), cost = techCost(t, inc), need = techKp(t), got = kpIn(t);
+  let pill = '';
+  if (st === 'open') {
+    if (power < gate) pill = rankBar(power, gate, true);
+    else if (!kpFull(t)) pill = `<button class="buy kp" data-pour="${t.id}"${costAttr('icon_waggle', 1)} ${S.kp >= 1 ? '' : 'disabled'}>
+      ${icon('icon_waggle')}${got}/${need} +</button>`;
+    else pill = `<button class="buy" data-tech="${t.id}"${costAttr('icon_coin', cost)} ${S.coin >= cost ? '' : 'disabled'}>
+      ${cost ? icon('icon_coin') + fmt(cost) : 'Free'}</button>`;
+  } else if (st === 'locked' && got) pill = `<small class="bkp">${icon('icon_waggle')}${got}/${need}</small>`;
+  return `<div class="bub"><i style="${art(nodeArt(t))}"></i>${st === 'done' ? '<span class="bdone">\u2713</span>' : ''}</div>
+    <b class="bname">${t.name}</b><em class="bsub">${nodeSub(t)}</em>${pill}`;
+}
+
+// Redraw one bubble in place and put its handlers back.
+function refreshNode(id) {
+  const el = body.querySelector(`.bnode[data-id="${id}"]`);
+  const t = techDef(id);
+  if (!el || !t) return;
+  el.className = 'bnode ' + techState(t);
+  el.innerHTML = nodeInner(t, incomePerSec(), hivePower());
+  wireNode(el);
+}
+
+function wireNode(el) {
+  const p = el.querySelector('[data-pour]');
+  if (p) p.onclick = e => { e.stopPropagation(); pourInto(p.dataset.pour); };
+  const r = el.querySelector('[data-tech]');
+  if (r) r.onclick = e => { e.stopPropagation(); doResearch(r.dataset.tech); };
+  el.onmouseenter = () => techTip(el);
+  el.onmouseleave = () => { if (!tipPinned) hideTechTip(); };
+  el.onclick = () => { tipPinned = !(tipPinned && tipFor === el.dataset.id); tipPinned ? techTip(el) : hideTechTip(); };
+}
+
+function pourInto(id) {
+  const n = pourKp(id);
+  if (!n) return toast('No waggles to spare. One comes every ' + clock(WAGGLE.every));
+  refreshNode(id);
+  if (tipPinned && tipFor === id) techTip(body.querySelector(`.bnode[data-id="${id}"]`));
+  save(); syncHUD();
+}
+
 function renderPark() {
   title.textContent = `Research  \u00b7  ${techCount()}/${TECH.length}`;
   const inc = incomePerSec(), power = hivePower();
   const cols = Math.max(...TECH.map(t => t.col)) + 1;
   const W = BT.padX * 2 + (cols - 1) * BT.colW + BT.bub, H = BT.padY + 3 * BT.rowH + 132;
   const nodes = TECH.map(t => {
-    const st = techState(t), gate = techGate(t), cost = techCost(t, inc), need = techKp(t), got = kpIn(t);
     const [x, y] = bubPos(t);
-    let pill = '';
-    if (st === 'open') {
-      if (power < gate) pill = rankBar(power, gate, true);
-      else if (!kpFull(t)) pill = `<button class="buy kp" data-pour="${t.id}"${costAttr('icon_waggle', 1)} ${S.kp >= 1 ? '' : 'disabled'}>
-        ${icon("icon_waggle")}${got}/${need} +</button>`;
-      else pill = `<button class="buy" data-tech="${t.id}"${costAttr('icon_coin', cost)} ${S.coin >= cost ? '' : 'disabled'}>
-        ${cost ? icon('icon_coin') + fmt(cost) : 'Free'}</button>`;
-    } else if (st === 'locked' && got) pill = `<small class="bkp">${icon('icon_waggle')}${got}/${need}</small>`;
-    return `<div class="bnode ${st}" data-id="${t.id}" style="left:${x}px;top:${y}px">
-      <div class="bub"><i style="${art(nodeArt(t))}"></i>${st === 'done' ? '<span class="bdone">\u2713</span>' : ''}</div>
-      <b class="bname">${t.name}</b><em class="bsub">${nodeSub(t)}</em>${pill}</div>`;
+    return `<div class="bnode ${techState(t)}" data-id="${t.id}" style="left:${x}px;top:${y}px">${nodeInner(t, inc, power)}</div>`;
   }).join('');
   // right-angled arrows from each requirement to what it opens
   const r = BT.bub / 2;
@@ -412,13 +446,7 @@ function renderPark() {
       </defs>${lines}</svg>${nodes}</div></div>
     <div class="chaps">${tabs}</div>`;
   const wrap = body.querySelector('.bwrap');
-  body.querySelectorAll('[data-tech]').forEach(b => b.onclick = e => { e.stopPropagation(); doResearch(b.dataset.tech); });
-  body.querySelectorAll('[data-pour]').forEach(b => b.onclick = e => {
-    e.stopPropagation();
-    const n = pourKp(b.dataset.pour);
-    if (!n) return toast('No waggles to spare. One comes every ' + clock(WAGGLE.every));
-    save(); syncHUD(); renderPark();
-  });
+  body.querySelectorAll('.bnode').forEach(wireNode);
   body.querySelectorAll('.chap').forEach(b => b.onclick = () => {
     wrap.scrollTo({ left: BT.padX + +b.dataset.col * BT.colW - 20, behavior: 'smooth' });
   });
@@ -427,11 +455,6 @@ function renderPark() {
     const cur = CHAPTERS.reduce((k, c, i) => (col >= c.col - 0.5 ? i : k), 0);
     body.querySelectorAll('.chap').forEach((b, i) => b.classList.toggle('on', i === cur));
   };
-  body.querySelectorAll('.bnode').forEach(n => {
-    n.onmouseenter = () => techTip(n);
-    n.onmouseleave = () => { if (!tipPinned) hideTechTip(); };
-    n.onclick = () => { tipPinned = !(tipPinned && tipFor === n.dataset.id); tipPinned ? techTip(n) : hideTechTip(); };
-  });
   wrap.onscroll = () => { tipPinned = false; hideTechTip(); syncChap(); };
   if (renderPark.focus) {
     const t = techDef(renderPark.focus);
@@ -724,57 +747,69 @@ function askName(bee, after) {
   inp.onkeydown = e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') close(); };
 }
 
+// One card per bee, and the open one grows to hold everything about her:
+// her line, her passive, her skill, and where she works. No second panel
+// underneath, so you never lose your place in the list.
+function beeCard(def, bee, open) {
+  const locked = !bee;
+  const head = `<div class="bc-head">
+      <div class="bc-fig">${bee ? beeFig(bee, 62)
+        : `<span class="beefig" style="width:62px;height:62px"><span class="layer" style="${art('bee_' + def.el)}"></span></span>`}</div>
+      <div class="bc-id">
+        <b>${bee ? beeName(bee) : def.name}</b>
+        <span class="bc-stars">${stars(def.stars)}</span>
+        <small>${locked ? 'Not yet hatched' : `Lv.${bee.level || 1} \u00b7 ${ELEMENTS[def.el].name}${
+          bee.learned.length ? ' + ' + bee.learned.map(e => ELEMENTS[e].name).join(', ') : ''}`}</small>
+      </div>
+      ${locked ? `<i class="ic bc-lock" style="${art('icon_lock')}"></i>` : ''}
+    </div>`;
+  if (!open) return `<button class="beecard ${locked ? 'lock' : ''}" data-bee="${def.id}">${head}</button>`;
+
+  const cost = bee ? promoteCost(def.stars, bee.level || 1) : 0;
+  const canPromote = bee && (bee.level || 1) < BEE_MAX_LEVEL;
+  const mul = bee ? beeMul(bee) : { carry: 1, speed: 1 };
+  const sk = skillOf(def.id);
+  const ready = bee && skillReady(bee);
+  const pins = Object.keys(S.stations);
+  const body_ = locked
+    ? `<p class="tale">${def.line}</p>
+       <div class="bc-row"><span>Her gift</span><b>${statLabelFull(def.stat)}, ${pct(def.step)} to the whole park once you have her</b></div>
+       <div class="hint">Summon her at the Brood Cells.</div>`
+    : `<p class="tale">${def.line}</p>
+       <div class="bc-grid">
+         <div class="bc-row"><span>Her gift</span><b>${statLabelFull(def.stat)} \u00b7 ${pct(def.step * (bee.level || 1))}</b></div>
+         <div class="bc-row"><span>Carries</span><b>${mul.carry.toFixed(2)}x \u00b7 flies ${mul.speed.toFixed(2)}x</b></div>
+         <div class="bc-row"><span>Academy</span><b>Rank ${bee.rank || 0} of ${ACADEMY.maxRank}</b></div>
+       </div>
+       <div class="card skill"><i class="ic big" style="${art(sk.icon)}"></i>
+         <div class="meta"><h3>${sk.name}</h3><small>${sk.text} Cooldown ${clock(skillCd(def.id, bee.level || 1))}.</small></div>
+         <button class="buy" id="use-skill" ${ready ? '' : 'disabled'}>${ready ? 'Use' : clock(skillLeft(bee))}</button></div>
+       <div class="bc-acts">
+         <button class="buy" id="promote"${canPromote ? costAttr('icon_jelly', cost) : ''} ${canPromote && S.jelly >= cost ? '' : 'disabled'}>
+           ${canPromote ? icon('icon_jelly') + 'Promote \u00b7 ' + fmt(cost) : 'Top level'}</button>
+         <button class="buy ghost" id="rename">Rename</button>
+       </div>
+       <div class="hint">Where she works</div>
+       <div class="items">
+         <div class="item ${!bee.pin ? 'on' : ''}" data-pin="">
+           <div class="art" style="${art('bee_' + bee.el)}"></div><span class="lv">Roam</span></div>
+         ${pins.map(id => `<div class="item ${bee.pin === id ? 'on' : ''}" data-pin="${id}">
+           <div class="art" style="${art(stationDef(id).dishSprite)}"></div>
+           <span class="lv">${stationDef(id).name.split(' ')[0]}${copyNo(id) > 1 ? ' ' + copyNo(id) : ''}</span></div>`).join('')}
+       </div>`;
+  return `<div class="beecard open ${locked ? 'lock' : ''}">
+      <button class="bc-top" data-bee="${def.id}">${head}<span class="bc-close">\u2715</span></button>
+      <div class="bc-body">${body_}</div></div>`;
+}
+
 function renderRoster(head) {
   const owned = new Map(S.bees.map(b => [b.rid, b]));
-  const cells = BEE_ROSTER.map(def => {
-    const b = owned.get(def.id);
-    return `<div class="item bee ${b ? '' : 'lock'} ${rosterSel === def.id ? 'on' : ''}"
-      data-bee="${def.id}">
-      ${b ? beeFig(b, 56) : `<span class="beefig" style="width:56px;height:56px">
-        <span class="layer" style="${art('bee_' + def.el)}"></span></span>`}
-      <span class="lv">${b ? 'Lv.' + (b.level || 1) : icon('icon_lock')}</span>
-      <span class="stars">${stars(def.stars)}</span></div>`;
-  }).join('');
-
   const def = rosterSel && beeDef(rosterSel);
   const bee = def && owned.get(def.id);
-  let detail = '<div class="hint">Pick a bee. Summon the ones you are missing at the Brood Cells.</div>';
-  if (def) {
-    const cost = bee ? promoteCost(def.stars, bee.level || 1) : 0;
-    const canPromote = bee && (bee.level || 1) < BEE_MAX_LEVEL;
-    const mul = bee ? beeMul(bee) : { carry: 1, speed: 1 };
-    const pins = Object.keys(S.stations);
-    detail = `<div class="card"><div class="art">${bee ? beeFig(bee, 48) : ''}</div>
-      <div class="meta"><h3>${bee ? beeName(bee) : def.name} ${stars(def.stars)}${
-          bee ? ' <button class="rename" id="rename">rename</button>' : ''}</h3>
-        <small>${RARITY[def.stars].name} \u00b7 ${ELEMENTS[def.el].name}${
-          bee && bee.learned.length ? ' + ' + bee.learned.map(e => ELEMENTS[e].name).join(', ') : ''}</small></div>
-      ${bee ? `<button class="buy" id="promote"${canPromote ? costAttr('icon_jelly', cost) : ''} ${canPromote && S.jelly >= cost ? '' : 'disabled'}>
-        ${canPromote ? icon('icon_jelly') + fmt(cost) : 'Max'}</button>` : icon('icon_lock')}</div>
-      <p class="tale">${def.line}</p>
-      <div class="card"><div class="meta"><h3>${statLabelFull(def.stat)}</h3>
-        <small>${pct(def.step * (bee ? bee.level || 1 : 1))} to the whole park${
-          bee ? '' : ' once you have her'}</small></div></div>
-      ${bee ? (() => { const sk = skillOf(def.id); const ready = skillReady(bee); return `
-      <div class="card skill"><i class="ic big" style="${art(sk.icon)}"></i>
-        <div class="meta"><h3>${sk.name}</h3><small>${sk.text}</small></div>
-        <button class="buy" id="use-skill" ${ready ? '' : 'disabled'}>
-          ${ready ? 'Use' : clock(skillLeft(bee))}</button></div>
-      <div class="hint">Cooldown ${clock(skillCd(def.id, bee.level || 1))}, shorter each level</div>`; })() : ''}
-      ${bee ? `<div class="card"><div class="meta"><h3>Carries ${mul.carry.toFixed(2)}x \u00b7 flies ${mul.speed.toFixed(2)}x</h3>
-        <small>Level ${bee.level || 1} of ${BEE_MAX_LEVEL} \u00b7 Academy rank ${bee.rank || 0}</small></div></div>
-      <div class="hint">Assign to one kitchen, or leave her to roam</div>
-      <div class="items">
-        <div class="item ${!bee.pin ? 'on' : ''}" data-pin="">
-          <div class="art" style="${art('bee_' + bee.el)}"></div><span class="lv">Roam</span></div>
-        ${pins.map(id => `<div class="item ${bee.pin === id ? 'on' : ''}" data-pin="${id}">
-          <div class="art" style="${art(stationDef(id).dishSprite)}"></div>
-          <span class="lv">${stationDef(id).name.split(' ')[0]}${copyNo(id) > 1 ? ' ' + copyNo(id) : ''}</span></div>`).join('')}
-      </div>` : ''}`;
-  }
+  const cards = BEE_ROSTER.map(d => beeCard(d, owned.get(d.id), rosterSel === d.id)).join('');
 
-  body.innerHTML = head + `<div class="items roster">${cells}</div>` + detail +
-    `<div class="hint">${S.bees.length} of ${ROSTER_MAX} bees \u00b7 Hive Rank ${fmt(hivePower())}.
+  body.innerHTML = head + `<div class="beegrid">${cards}</div>
+    <div class="hint">${S.bees.length} of ${ROSTER_MAX} bees \u00b7 Hive Rank ${fmt(hivePower())}.
       Royal jelly comes from duplicate eggs.</div>`;
 
   body.querySelectorAll('[data-bee]').forEach(el => el.onclick = () => {
