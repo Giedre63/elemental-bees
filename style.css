@@ -181,9 +181,9 @@ canvas#park{position:absolute;inset:0;width:100%;height:100%;display:block;
 .beefig{position:relative;display:inline-block;vertical-align:middle}
 .beefig .layer{position:absolute;inset:0;background:center/contain no-repeat;
   image-rendering:pixelated}
-.beefig .l-hat{transform:translate(16%,-23%) scale(.38)}
-.beefig .l-cloak{transform:translate(-12%,2%) scale(.46)}
-.beefig .l-shoes{transform:translate(2%,31%) scale(.34)}
+.beefig .l-cloak{transform:translate(-26%,9%) scale(0.62)}
+.beefig .l-shoes{transform:translate(3%,31%) scale(0.34)}
+.beefig .l-hat{transform:translate(16%,-43%) scale(0.42)}
 
 .stars{display:inline-flex;gap:1px;vertical-align:middle;margin-left:4px}
 .stars .st{width:11px;height:11px}

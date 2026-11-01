@@ -3,7 +3,6 @@ import {
   nextLandCost, canPlace, buildingLevel, decorArea, decorTargets,
 } from './state.js';
 import { E } from './edit.js';
-import { worn, wraps } from './wear.js';
 import {
   WORLD, BLOSSOM_SLOTS, LOUNGE_SLOTS, DECOR_SLOTS, STATIONS, stationDef, ELEMENTS,
   ACADEMY_POS, ACADEMY, SCATTER, BUILDINGS, BUILDING_IDS, OUTFIT_SLOTS, RARITY,
@@ -469,9 +468,7 @@ function drawBee(b, t) {
   const sc = b.mode === 'enter' ? Math.max(0.12, 1 - b.t / 0.45)
            : b.mode === 'leave' ? Math.min(1, 0.12 + b.t / 0.35) : 1;
   if (sc < 1) {
-    const top = b.outfit && b.outfit.cloak;
-    const fr = sprite('bee_' + b.el);
-    const im = top && wraps(top) ? worn(fr, top) : fr;
+    const im = sprite('bee_' + b.el);
     if (im) drawImg(im, b.x, b.y + 8 * (1 - sc), 40 * sc, b.face === -1);
     return;
   }
@@ -485,15 +482,11 @@ function drawBee(b, t) {
     ctx.lineWidth = 2; ctx.globalAlpha = .85; ctx.stroke(); ctx.globalAlpha = 1;
   }
   const flip = b.face === -1;
-  // body clothes are painted into the frame itself; see wear.js
-  const top = b.outfit && b.outfit.cloak;
   const frame = animFrame('bee_' + b.el + '_hover', t + b.id * 0.17, 12) || sprite('bee_' + b.el);
-  const body = top && wraps(top) ? worn(frame, top) : frame;
-  if (body) drawImg(body, b.x, b.y + bob, 40, flip);
-  else {
-    blob(b.x, b.y + bob - 10, 11, ELEMENTS[b.el].color);
-  }
-  drawKit(b, b.y + bob, flip);
+  drawKit(b, b.y + bob, flip, true);             // cloak, behind her
+  if (frame) drawImg(frame, b.x, b.y + bob, 40, flip);
+  else blob(b.x, b.y + bob - 10, 11, ELEMENTS[b.el].color);
+  drawKit(b, b.y + bob, flip, false);            // shoes and hat, in front
   if (b.load) {
     if (!blit('nectar_' + b.load.el, b.x + (flip ? 13 : -13), b.y + bob + 4, 20)) {
       blob(b.x - 12, b.y + bob - 2, 6, ELEMENTS[b.load.el].color);
@@ -515,20 +508,22 @@ function drawBee(b, t) {
 // hat, jumper and boots painted over the bee at fixed anchors
 // dx/dy are fractions of the bee's drawn height, from her feet. dx is
 // positive towards the face, which is the way she is flying.
+// A paper doll: the cloak hangs behind her, the shoes and hat go in front.
+// dx/dy are fractions of her drawn height, measured from her feet, and dx is
+// positive towards her face, which is the way she is flying.
 const KIT_ANCHOR = {
-  hat:   { dx: 0.17, dy: 0.72, size: 0.38 },
-  cloak: { dx: -0.12, dy: 0.44, size: 0.46 },
-  shoes: { dx: 0.02, dy: 0.06, size: 0.34 },
+  cloak:  { dx: -0.26, dy: 0.70, size: 0.62, behind: true },
+  shoes:  { dx:  0.03, dy: 0.36, size: 0.34 },
+  hat:    { dx:  0.16, dy: 1.14, size: 0.42 },
 };
 
-function drawKit(b, baseY, flip) {
+function drawKit(b, baseY, flip, behind) {
   if (!b.outfit) return;
   const h = 40;                                  // the bee is drawn 40px tall
   for (const slot of OUTFIT_SLOTS) {
-    const id = b.outfit[slot];
-    if (!id || wraps(id)) continue;
     const a = KIT_ANCHOR[slot];
-    if (!a) continue;
+    const id = b.outfit[slot];
+    if (!id || !a || !!a.behind !== !!behind) continue;
     const dx = h * a.dx * (flip ? -1 : 1);
     blit('fit_' + id, b.x + dx, baseY - h * a.dy + h * a.size, h * a.size, flip);
   }
@@ -550,7 +545,8 @@ function drawFx(f) {
   ctx.globalAlpha = 1 - k * k;
   ctx.font = 'bold 17px "Trebuchet MS",sans-serif';
   ctx.textAlign = 'left';
-  ctx.lineWidth = 4.5; ctx.strokeStyle = '#2a1d16';
+  ctx.lineWidth = f.kind === 'heart' ? 2.5 : 4.5;
+  ctx.strokeStyle = f.kind === 'heart' ? '#1a1208' : '#2a1d16';
   const txt = typeof f.text === 'number' ? '+' + fmt(f.text) :
     f.text.startsWith('+') && !isNaN(+f.text.slice(1)) ? '+' + fmt(+f.text.slice(1)) : f.text;
   const y = f.y - k * 40;
@@ -560,7 +556,7 @@ function drawFx(f) {
   const x = f.x - total / 2;
   if (icon) ctx.drawImage(icon, x, y - 15, iw, iw);
   ctx.strokeText(txt, x + iw + (iw ? 3 : 0), y);
-  ctx.fillStyle = f.tint || '#fff';
+  ctx.fillStyle = f.kind === 'heart' ? '#ffffff' : (f.tint || '#fff');
   ctx.fillText(txt, x + iw + (iw ? 3 : 0), y);
   ctx.globalAlpha = 1;
   ctx.textAlign = 'center';

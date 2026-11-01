@@ -22,7 +22,6 @@ import {
 import { fmt, pct, clock } from './num.js';
 import { sellStation, sellType, typeStock, collectBag, rushBlossoms, fillOrder, summon, useSkill } from './sim.js';
 import { E, clearHold } from './edit.js';
-import { wraps, wornUrl } from './wear.js';
 import { viewCentre, lookBelowPanel } from './render.js';
 import { spriteUrl } from './assets.js';
 
@@ -40,13 +39,13 @@ const icon = n => `<i class="ic" style="${art(n)}"></i>`;
 
 // a bee portrait with its kit layered on, same anchors the canvas uses
 export function beeFig(b, size = 84) {
-  const top = b.outfit && b.outfit.cloak;
-  const dressed = top && wraps(top) && wornUrl(b.el, top);
-  const kit = OUTFIT_SLOTS.filter(s => b.outfit && b.outfit[s] && !(s === 'cloak' && dressed))
-    .map(s => `<span class="layer l-${s}" style="${art('fit_' + b.outfit[s])}"></span>`).join('');
-  const base = dressed ? `background-image:url('${dressed}')` : art('bee_' + b.el);
-  return `<span class="beefig" style="width:${size}px;height:${size}px">
-    <span class="layer" style="${base}"></span>${kit}</span>`;
+  // same paper doll as the park: cloak behind, then the bee, then shoes, then hat
+  const order = ['cloak', 'base', 'shoes', 'hat'];
+  const layers = order.map(sl => sl === 'base'
+    ? `<span class="layer l-base" style="${art('bee_' + b.el)}"></span>`
+    : (b.outfit && b.outfit[sl])
+      ? `<span class="layer l-${sl}" style="${art('fit_' + b.outfit[sl])}"></span>` : '').join('');
+  return `<span class="beefig" style="width:${size}px;height:${size}px">${layers}</span>`;
 }
 
 const stars = n => `<span class="stars">` + [1, 2, 3].map(i =>
@@ -62,6 +61,16 @@ const statLabelFull = s => ({
 }[s] || s);
 
 // Every building takes levels. One row, same shape everywhere.
+// Whatever the builders are on right now, by name.
+function buildingLabel(key) {
+  const p = S.place[key];
+  if (stationDef(key) && (!p || p.k === 'station')) return kitchenName(key);
+  if (key === 'academy') return 'Snail Academy';
+  if (key === 'lounge' || (p && p.k === 'lounge')) return 'Bee Hotel';
+  if (BUILDINGS[key]) return BUILDINGS[key].name;
+  return 'another building';
+}
+
 function upgradeRow(id) {
   const kind = UPGRADES[upgradeKind(id)];
   if (!kind) return '';
@@ -77,18 +86,35 @@ function upgradeRow(id) {
   }
   const cost = upgradeCost(id), wax = upgradeWax(id);
   const busy = buildBusy();
-  const can = !maxed && !busy && S.coin >= cost && S.wax >= wax;
+  // one build site: say what is on it and offer the way out
+  if (busy && !maxed) {
+    const who = buildingLabel(S.build.id);
+    return `<div class="card up">
+      <div class="meta"><h3>Level ${lv}<small> / ${max}</small></h3>
+        <small>${kind.per.join(' \u00b7 ')}</small></div></div>
+      <div class="card locked"><div class="art" style="${art('icon_build')}"></div>
+        <div class="meta"><h3>Your builders are busy</h3>
+          <small>They are at the <b>${who}</b>, ${clock(buildLeft())} to go. One building goes up at a
+          time, so this one has to wait \u2014 or pay the gems to finish that one now.</small></div>
+        <button class="buy" id="do-rush-other">${icon('icon_gem')}${BUILD.rush(buildLeft())}</button></div>`;
+  }
+  const can = !maxed && S.coin >= cost && S.wax >= wax;
   const price = maxed ? 'Max'
-    : busy ? 'Site busy'
     : icon('icon_coin') + fmt(cost) + (wax ? ' ' + icon('icon_wax') + wax : '');
   return `<div class="card up">
     <div class="meta"><h3>Level ${lv}<small> / ${max}</small></h3>
       <small>${kind.per.join(' \u00b7 ')}${maxed ? '' :
         ' \u00b7 takes ' + clock(BUILD.seconds(lv))}</small></div>
-    <button class="buy" id="do-upgrade"${maxed || busy ? '' : costAttr({ coin: cost, wax })} ${can ? '' : 'disabled'}>${price}</button></div>`;
+    <button class="buy" id="do-upgrade"${maxed ? '' : costAttr({ coin: cost, wax })} ${can ? '' : 'disabled'}>${price}</button></div>`;
 }
 
 function wireUpgrade(id, rerender) {
+  const ro = body.querySelector('#do-rush-other');
+  if (ro) ro.onclick = () => {
+    if (!rushBuild()) return toast('Not enough gems');
+    toast('Finished \u00b7 the builders are free');
+    save(); syncHUD(); rerender();
+  };
   const b = body.querySelector('#do-upgrade');
   if (b) b.onclick = () => {
     const r = startUpgrade(id);

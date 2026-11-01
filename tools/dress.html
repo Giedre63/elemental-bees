@@ -1,0 +1,47 @@
+<!doctype html>
+<!-- Dev sheet: a bee in every hat, cloak and shoe, at 5x, both facings.
+     http://localhost:8137/tools/dress.html -->
+<base href="../">
+<body style="margin:0;background:#8fbf6a">
+<canvas id="c" width="1300" height="620"></canvas>
+<script type="module">
+import { loadAssets, sprite } from './src/assets.js';
+import { OUTFITS, OUTFIT_SLOTS } from './src/data.js';
+await loadAssets();
+const g = document.getElementById('c').getContext('2d');
+g.imageSmoothingEnabled = false;
+const A = {
+  cloak:  { dx: -0.26, dy: 0.70, size: 0.62, behind: true },
+  shoes:  { dx:  0.03, dy: 0.36, size: 0.34 },
+  hat:    { dx:  0.16, dy: 1.14, size: 0.42 },
+};
+const H = 100;                       // bee drawn 100px tall here
+function blit(im, x, y, size, flip) {
+  if (!im) return;
+  const w = size, h = size * (im.height / im.width);
+  g.save(); g.translate(x, y); if (flip) g.scale(-1, 1);
+  g.drawImage(im, -w / 2, -h, w, h); g.restore();
+}
+function doll(x, y, kit, flip) {
+  for (const pass of [true, false]) {
+    if (!pass) blit(sprite('bee_ember'), x, y, H, flip);
+    for (const sl of OUTFIT_SLOTS) {
+      const a = A[sl], id = kit[sl];
+      if (!id || !a || !!a.behind !== pass) continue;
+      blit(sprite('fit_' + id), x + H * a.dx * (flip ? -1 : 1), y - H * a.dy + H * a.size, H * a.size, flip);
+    }
+  }
+}
+const bySlot = sl => OUTFITS.filter(o => o.slot === sl).map(o => o.id);
+const hats = bySlot('hat'), cloaks = bySlot('cloak'), shoes = bySlot('shoes');
+// row 1: one item at a time
+hats.forEach((id, i) => doll(70 + i * 130, 150, { hat: id }, false));
+cloaks.forEach((id, i) => doll(70 + i * 130, 300, { cloak: id }, false));
+shoes.forEach((id, i) => doll(70 + i * 130, 450, { shoes: id }, false));
+// row 4: full outfits, both ways round
+for (let i = 0; i < 7; i++) {
+  doll(70 + i * 130, 600, { hat: hats[i], cloak: cloaks[i % cloaks.length], shoes: shoes[i % shoes.length] }, i % 2 === 1);
+}
+g.fillStyle = '#2a1d16'; g.font = 'bold 13px sans-serif';
+['hats', 'cloaks', 'shoes', 'all three'].forEach((t, i) => g.fillText(t, 6, 60 + i * 150));
+</script>
